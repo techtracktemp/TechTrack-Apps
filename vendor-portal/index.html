@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<!-- C.Perry -->
+<!--
+  TechTrack Vendor Portal phone and desktop app page (Nov 3 2026).
+  Opens the live TechTrack Vendor Portal full screen with the MCR icon, like an app.
+  Nothing from the portal is stored here. Projects always come live from the portal.
+  The only file to change is config.js (the web app link).
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TechTrack Vendor Portal</title>
+<meta name="description" content="MCR Hotels vendor projects, quotes, schedules and invoices.">
+<meta name="theme-color" content="#0A1F44">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Vendor Portal">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<script src="config.js"></script>
+<style>
+  :root { --bg: #0F1B2D; --navy: #0A1F44; --accent: #DCE6F1; --muted: #A9B8CC; }
+  html, body { margin: 0; height: 100%; background: var(--navy); overflow: hidden; }
+  body { font-family: Calibri, 'Segoe UI', -apple-system, Roboto, Arial, sans-serif; color: #fff; box-sizing: border-box;
+         padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+  /* The bottom safe area matches the app's bottom bar so the phone's home line sits on navy. */
+  body.ready { background: #FFFFFF; }
+  #app { display: block; width: 100%; height: 100%; border: 0; background: #F0F4FF; }
+  .cover { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+           background: radial-gradient(circle at 50% 42%, #13284A 0%, #0B1A2E 60%, #07111F 100%); text-align: center; padding: 24px;
+           box-sizing: border-box; z-index: 5; transition: opacity .4s ease; }
+  .cover.gone { opacity: 0; pointer-events: none; }
+  .wrap { position: relative; width: 150px; height: 150px; }
+  .wrap img { position: absolute; inset: 14px; width: 122px; height: 122px; border-radius: 50%; animation: pop .7s cubic-bezier(.2,1.4,.4,1) both, breathe 2.4s ease-in-out .9s infinite; }
+  .ring { position: absolute; inset: 0; width: 150px; height: 150px; animation: spin 1.4s linear infinite; }
+  .ring circle { fill: none; stroke-width: 3.5; stroke-linecap: round; }
+  .ring .trk { stroke: rgba(122,167,214,.16); }
+  .ring .arc { stroke: var(--accent); stroke-dasharray: 120 400; }
+  .cover.still .ring { display: none; }
+  h1 { font-size: 21px; font-weight: bold; letter-spacing: 3px; margin: 0; }
+  p { margin: 0; font-size: 15px; color: var(--muted); max-width: 340px; line-height: 1.4; }
+  .btn { display: inline-block; margin-top: 4px; padding: 12px 22px; border-radius: 10px; border: 0; font-size: 16px; font-weight: bold;
+         background: var(--accent); color: #10233F; text-decoration: none; cursor: pointer; font-family: inherit; }
+  .btn.ghost { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,.6); }
+  .hide { display: none !important; }
+  @keyframes pop { from { transform: scale(.35); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .cover * { animation-duration: .01s !important; animation-iteration-count: 1 !important; } }
+  /* Add to Home Screen tip: phones only, only in the browser, never once installed. */
+  #tip { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 6; background: #16263D;
+         color: #fff; border: 1px solid #2B4566; border-radius: 14px; box-shadow: 0 6px 24px rgba(0,0,0,.45); padding: 14px 44px 14px 14px;
+         font-size: 15px; line-height: 1.4; }
+  #tip b { color: var(--accent); }
+  #tip .x { position: absolute; top: 6px; right: 8px; border: 0; background: none; font-size: 24px; color: var(--muted); cursor: pointer; padding: 4px 8px; }
+  #tip .btn { margin-top: 10px; padding: 9px 16px; font-size: 15px; }
+</style>
+</head>
+<body>
+<iframe id="app" title="TechTrack Vendor Portal" allow="clipboard-write; fullscreen"></iframe>
+
+<div id="splash" class="cover">
+  <div class="wrap">
+    <svg class="ring" viewBox="0 0 168 168"><circle class="trk" cx="84" cy="84" r="80"/><circle class="arc" cx="84" cy="84" r="80"/></svg>
+    <img src="icons/logo.png" alt="MCR">
+  </div>
+  <h1>VENDOR PORTAL</h1>
+  <p id="slow" class="hide">Still loading. If this takes a while, check your signal.</p>
+  <a id="openWeb" class="btn ghost hide" target="_blank" rel="noopener">Open in the browser</a>
+</div>
+
+<div id="offline" class="cover still hide">
+  <div class="wrap"><svg class="ring" viewBox="0 0 168 168"></svg><img src="icons/logo.png" alt="MCR"></div>
+  <h1>NO CONNECTION</h1>
+  <p>The Vendor Portal needs the internet to show your projects. Connect to Wi-Fi or data and tap Try again.</p>
+  <button id="retry" class="btn">Try again</button>
+</div>
+
+<div id="setup" class="cover still hide">
+  <div class="wrap"><svg class="ring" viewBox="0 0 168 168"></svg><img src="icons/logo.png" alt="MCR"></div>
+  <h1>VENDOR PORTAL</h1>
+  <p>This app page is not connected to the portal yet. Ask MCR for the right link.</p>
+</div>
+
+<div id="tip" class="hide">
+  <button class="x" id="tipX" aria-label="Close">&times;</button>
+  <div id="tipText"></div>
+  <button id="installBtn" class="btn hide">Install</button>
+</div>
+
+<script>
+// C.Perry
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var url = String(window.VENDOR_PORTAL_URL || '').trim();
+  var frame = $('app'), splash = $('splash'), offline = $('offline');
+
+  if (!/^https:\/\/script\.google\.com\/.+\/exec$/.test(url)) {
+    splash.classList.add('hide'); $('setup').classList.remove('hide');
+    return;
+  }
+  $('openWeb').href = url;
+
+  // Links like .../techtrack/?open=req:REQ-1 pass straight through to the portal (approve-from-email links).
+  var pass = location.search && location.search.length > 1 ? location.search : '';
+  var target = url + pass;
+
+  var loaded = false, slowTimer;
+  function start() {
+    if (!navigator.onLine) { showOffline(); return; }
+    offline.classList.add('hide'); splash.classList.remove('hide', 'gone');
+    loaded = false;
+    clearTimeout(slowTimer);
+    slowTimer = setTimeout(function () { if (!loaded) { $('slow').classList.remove('hide'); $('openWeb').classList.remove('hide'); } }, 15000);
+    frame.src = target;
+  }
+  function showOffline() { splash.classList.add('hide'); offline.classList.remove('hide'); }
+  frame.addEventListener('load', function () {
+    if (!frame.src) return;
+    loaded = true; clearTimeout(slowTimer);
+    document.body.classList.add('ready');
+    splash.classList.add('gone');
+    setTimeout(function () { splash.classList.add('hide'); }, 450);
+  });
+  $('retry').addEventListener('click', start);
+  window.addEventListener('online', function () { if (!loaded) start(); });
+  window.addEventListener('offline', function () { if (!loaded) showOffline(); });
+  start();
+
+  // Keeps only this page's own files on the device so it opens fast. Never portal data.
+  if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').catch(function () {}); }
+
+  // Add to Home Screen tip.
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  var closed = false; try { closed = localStorage.getItem('vp_tip_closed') === '1'; } catch (e) {}
+  var ua = navigator.userAgent || '';
+  var isIos = /iphone|ipad|ipod/i.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  var isPhone = isIos || /android/i.test(ua);
+  var deferred = null;
+  function showTip(html, withButton) {
+    if (standalone || closed) return;
+    $('tipText').innerHTML = html;
+    $('installBtn').classList.toggle('hide', !withButton);
+    $('tip').classList.remove('hide');
+  }
+  $('tipX').addEventListener('click', function () {
+    $('tip').classList.add('hide'); closed = true;
+    try { localStorage.setItem('vp_tip_closed', '1'); } catch (e) {}
+  });
+  // Android and laptop Chrome or Edge: offer a real Install button.
+  window.addEventListener('beforeinstallprompt', function (e) {
+    e.preventDefault(); deferred = e;
+    showTip(isPhone ? 'Put the Vendor Portal on your phone so it opens like an app.' : 'Install the Vendor Portal on this computer so it opens in its own window.', true);
+  });
+  $('installBtn').addEventListener('click', function () {
+    if (!deferred) return;
+    deferred.prompt();
+    deferred.userChoice.then(function () { deferred = null; $('tip').classList.add('hide'); });
+  });
+  window.addEventListener('appinstalled', function () { $('tip').classList.add('hide'); });
+  setTimeout(function () {
+    if (isIos) showTip('Get the app: tap <b>Share</b> (the square with the arrow), then <b>Add to Home Screen</b>.', false);
+    else if (!deferred && /android/i.test(ua)) showTip('Get the app: tap the <b>&#8942;</b> menu, then <b>Install app</b> or <b>Add to Home screen</b>.', false);
+  }, 2500);
+})();
+</script>
+</body>
+</html>

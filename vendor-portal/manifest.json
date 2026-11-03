@@ -1,0 +1,18 @@
+{
+  "_comment": "C.Perry - TechTrack Vendor Portal app",
+  "name": "TechTrack Vendor Portal",
+  "short_name": "Vendor Portal",
+  "description": "MCR Hotels vendor projects, quotes, schedules and invoices.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F0F4FF",
+  "theme_color": "#0A1F44",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
