@@ -38,7 +38,7 @@
   .ring { position: absolute; inset: 0; width: 150px; height: 150px; animation: spin 1.4s linear infinite; }
   .ring circle { fill: none; stroke-width: 3.5; stroke-linecap: round; }
   .ring .trk { stroke: rgba(122,167,214,.16); }
-  .ring .arc { stroke: var(--accent); stroke-dasharray: 120 400; }
+  .ring .arc { stroke: #7AA7D6; stroke-dasharray: 120 400; animation: dash 1.4s ease-in-out infinite; }
   .cover.still .ring { display: none; }
   h1 { font-size: 21px; font-weight: bold; letter-spacing: 3px; margin: 0; }
   p { margin: 0; font-size: 15px; color: var(--muted); max-width: 340px; line-height: 1.4; }
@@ -49,6 +49,7 @@
   @keyframes pop { from { transform: scale(.35); opacity: 0; } to { transform: scale(1); opacity: 1; } }
   @keyframes breathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
   @keyframes spin { to { transform: rotate(360deg); } }
+  @keyframes dash { 0% { stroke-dasharray: 20 480; } 50% { stroke-dasharray: 180 320; } 100% { stroke-dasharray: 20 480; } }
   @media (prefers-reduced-motion: reduce) { .cover * { animation-duration: .01s !important; animation-iteration-count: 1 !important; } }
   /* Add to Home Screen tip: phones only, only in the browser, never once installed. */
   #tip { position: fixed; left: 10px; right: 10px; bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 6; background: #16263D;
