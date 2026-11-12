@@ -1,0 +1,8 @@
+# C.Perry
+# Chris Perry
+Blueprint scan build on the laptop (2026-11-12)
+1. Put this folder's 4 files in a folder, e.g. Downloads\TechTrack-BlueBox\Network Scans 2026-11-12\build\
+2. Copy the blueprint CSVs into build\2026-11-12\blueprint\
+3. cd build ; python -I build_blueprint_scan.py 2026-11-12
+4. Output: build\2026-11-12\blueprint\out\NetworkScanImport.gs (install per loader-install-apply.md)
+Expected test on 11/07 data: hotels 48 devices 2542 offline 487 alerts 505
