@@ -1,7 +1,7 @@
 // C.Perry
 // TechTrack Vendor Portal app page. Keeps this page's own files (never portal data) on the device so it opens fast
 // and can say "No connection" with no signal. Projects always come live from the portal.
-var CACHE = 'vendor-portal-shell-1';
+var CACHE = 'vendor-portal-shell-2';
 var FILES = ['./', './index.html', './config.js', './manifest.json', './icons/icon-192.png', './icons/icon-512.png',
   './icons/apple-touch-icon.png', './icons/favicon-32.png', './icons/logo.png'];
 self.addEventListener('install', function (e) {
