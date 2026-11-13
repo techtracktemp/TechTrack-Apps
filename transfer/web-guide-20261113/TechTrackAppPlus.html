@@ -1,0 +1,699 @@
+<!-- C.Perry -->
+<!--
+  TechTrack App Plus (Nov 1 2026). Included at the bottom of TechTrackApp.html.
+  Adds, without changing how the existing screens work:
+    1. Every Sheets menu and sidebar item in the left nav, in the same groups.
+       Items run your real functions (TechTrackAppRunner.gs); pop-ups open
+       inside the app, Yes/No and typed answers are asked in the app, and a
+       pop-up that opens another pop-up keeps working.
+    2. Admin, Committee Glance (Weekly, T53, Other Funds) with Email me,
+       Reporting Hub (any tab, combine, columns, filters, group, sort, saved
+       reports shared by Chris and Kyle, Blue Box exports), Insights,
+       Support Context, Help and Training, and a guided tour.
+  Screens use the dark app look. PDF, Excel and email exports stay Blue Box.
+-->
+<style>
+  .modal-bg { position: fixed; inset: 0; background: rgba(4,10,20,.72); z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 520px; box-shadow: 0 20px 50px rgba(0,0,0,.6); overflow: hidden; }
+  .modal .mh { background: var(--navy); padding: 12px 16px; font-weight: bold; font-size: 16px; }
+  .modal .mb { padding: 16px; white-space: pre-wrap; line-height: 1.4; max-height: 60vh; overflow: auto; }
+  .modal .mf { padding: 12px 16px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--line); }
+  .toolhead { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .frame.tool { height: calc(100vh - 170px); }
+  .navfind { margin: 4px 4px 8px; }
+  .navfind input { padding: 6px 9px; font-size: 13px; }
+  .nav-group .nav-item.dim { color: var(--dim); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 1100px) { .grid2 { grid-template-columns: 1fr; } }
+  .frow { display: flex; gap: 10px; align-items: center; margin: 8px 0; flex-wrap: wrap; }
+  .frow label { color: var(--muted); font-size: 13px; min-width: 150px; }
+  .switch { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; }
+  .switch input { width: auto; }
+  table.grid { border-collapse: collapse; width: 100%; font-size: 13px; }
+  table.grid th { text-align: left; background: #0C1726; color: var(--accent); padding: 7px 8px; border-bottom: 1px solid var(--line); cursor: pointer; white-space: nowrap; position: sticky; top: 0; }
+  table.grid td { padding: 6px 8px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  table.grid tr.grp td { background: var(--panel2); font-weight: bold; cursor: pointer; }
+  table.grid tr.tot td { background: #0F2036; font-weight: bold; }
+  table.grid td.num { text-align: right; white-space: nowrap; }
+  .gridwrap { overflow: auto; max-height: calc(100vh - 330px); border: 1px solid var(--line); border-radius: 8px; }
+  .hub { display: grid; grid-template-columns: 300px 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 1100px) { .hub { grid-template-columns: 1fr; } }
+  .hubside .card { margin-bottom: 10px; }
+  .hubside .cb { padding: 10px 12px; }
+  .colpick { max-height: 220px; overflow: auto; border: 1px solid var(--line); border-radius: 6px; padding: 6px; }
+  .colpick label { display: flex; gap: 6px; align-items: center; font-size: 13px; padding: 2px 0; cursor: pointer; }
+  .colpick input { width: auto; }
+  .fl { display: grid; grid-template-columns: 1fr 90px 1fr 26px; gap: 4px; margin: 4px 0; }
+  .fl input, .fl select { padding: 5px 6px; font-size: 13px; }
+  .ins { border-left: 4px solid var(--line); }
+  .ins.high { border-left-color: var(--red); } .ins.medium { border-left-color: var(--amber); } .ins.low { border-left-color: var(--blue); } .ins.info { border-left-color: var(--green); }
+  .kb { background: #0F2036; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin: 6px 0; font-size: 13px; }
+  .kb b { color: var(--accent); }
+  .steps-ol li { margin: 4px 0; }
+  .help h3 { margin: 6px 0; }
+  .help p, .help li { color: var(--text); line-height: 1.45; }
+  .tour-hl { position: relative; z-index: 95 !important; box-shadow: 0 0 0 3px var(--amber), 0 0 0 9999px rgba(4,10,20,.65) !important; border-radius: 8px; }
+  .tour-tip { position: fixed; z-index: 96; background: var(--panel); border: 1px solid var(--amber); border-radius: 10px; padding: 14px 16px; max-width: 360px; box-shadow: 0 12px 30px rgba(0,0,0,.6); }
+  .tour-tip h4 { margin: 0 0 6px; }
+  .tour-tip .tf { display: flex; gap: 8px; justify-content: flex-end; margin-top: 10px; }
+</style>
+
+<script>
+(function () {
+  var base = { buildNav: buildNav, render: render, exportModel: exportModel, hotelDetail: hotelDetail };
+  S.plus = { menu: null, admin: null, com: {}, comF: {}, hub: { sources: null, data: {}, spec: null, saved: null }, ins: null, insF: {}, tool: null };
+
+  /* ===================== MODALS ===================== */
+  function modal(title, bodyHtml, buttons) {
+    return new Promise(function (resolve) {
+      var bg = document.createElement('div'); bg.className = 'modal-bg';
+      bg.innerHTML = '<div class="modal"><div class="mh">' + esc(title || 'TechTrack') + '</div><div class="mb">' + bodyHtml + '</div><div class="mf"></div></div>';
+      var mf = bg.querySelector('.mf');
+      buttons.forEach(function (b, i) {
+        var el = document.createElement('button'); el.className = 'btn' + (b.primary ? ' primary' : ''); el.textContent = b.label;
+        el.onclick = function () { var v = typeof b.value === 'function' ? b.value(bg) : b.value; bg.remove(); resolve(v); };
+        mf.appendChild(el);
+      });
+      document.body.appendChild(bg);
+      var inp = bg.querySelector('input'); if (inp) { inp.focus(); inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') mf.lastChild.click(); }); }
+    });
+  }
+  function ask(inp) {
+    if (inp.type === 'prompt') {
+      var btns = [{ label: 'Cancel', value: { text: '', button: 'CANCEL' } }, { label: 'OK', primary: true, value: function (bg) { return { text: bg.querySelector('input').value, button: 'OK' }; } }];
+      if (/YES/.test(inp.buttons)) btns = [{ label: 'Cancel', value: { text: '', button: 'CANCEL' } }, { label: 'No', value: function (bg) { return { text: bg.querySelector('input').value, button: 'NO' }; } }, { label: 'Yes', primary: true, value: function (bg) { return { text: bg.querySelector('input').value, button: 'YES' }; } }];
+      return modal(inp.title, esc(inp.msg) + '<input style="margin-top:12px" autocomplete="off">', btns);
+    }
+    var b = inp.buttons || 'OK';
+    var list = /YES_NO_CANCEL/.test(b) ? [['Cancel', 'CANCEL'], ['No', 'NO'], ['Yes', 'YES']] : /YES_NO/.test(b) ? [['No', 'NO'], ['Yes', 'YES']] : /OK_CANCEL/.test(b) ? [['Cancel', 'CANCEL'], ['OK', 'OK']] : [['OK', 'OK']];
+    return modal(inp.title, esc(inp.msg), list.map(function (x, i) { return { label: x[0], value: x[1], primary: i === list.length - 1 }; }));
+  }
+  function showAlerts(title, alerts, error, result) {
+    var parts = (alerts || []).slice();
+    if (error) parts.push('Error: ' + error);
+    if (!parts.length && result && result !== 'undefined' && result !== 'null') parts.push(String(result).slice(0, 1500));
+    if (!parts.length) { toast((title || 'Done') + ': finished'); return; }
+    modal(title || 'TechTrack', esc(parts.join('\n\n')), [{ label: 'OK', primary: true, value: true }]);
+  }
+  window.ttModal = modal;
+
+  /* ===================== RUN ANY SHEETS MENU ITEM ===================== */
+  function runTool(fn, args, answers, label) {
+    toast('Opening ' + (label || fn) + '...');
+    return gs('ttRun', S.token, fn, args || [], answers || []).then(function (res) {
+      if (res.needInput) {
+        if ((res.alerts || []).length) toast(res.alerts.join(' '));
+        return ask(res.needInput).then(function (ans) {
+          if (ans === 'CANCEL' || (ans && ans.button === 'CANCEL')) { toast('Cancelled'); return; }
+          return runTool(fn, args, (res.answers || []).concat([ans]), label);
+        });
+      }
+      if (res.view) {
+        if (S.view !== 'tool') S.plus.back = S.view;
+        S.plus.tool = { key: res.view, title: res.title || label || fn, fn: fn };
+        S.view = 'tool'; render();
+        if ((res.alerts || []).length) toast(res.alerts.join(' '));
+        return;
+      }
+      showAlerts(label || fn, res.alerts, res.error, res.result);
+      S.plus.stale = true;
+    }).catch(function (e) { toast(e.message, true); });
+  }
+  window.ttRunTool = runTool;
+  window.addEventListener('message', function (e) {
+    var d = e && e.data; if (!d || typeof d !== 'object' || !d.tt) return;
+    if (d.tt === 'close' && S.view === 'tool') { go(S.plus.back || 'myday'); if (S.plus.stale) { S.plus.stale = false; refresh(); } }
+    if (d.tt === 'run' && d.fn) runTool(d.fn, d.args || [], [], d.fn);
+  });
+  function renderTool() {
+    var t = S.plus.tool; if (!t) return go('myday');
+    hideBar();
+    var url = BOOT.webAppUrl + '?run=' + encodeURIComponent(t.key) + '&t=' + encodeURIComponent(S.token);
+    $('view').innerHTML = '<div class="hello toolhead" style="padding:10px 16px;"><button class="btn small" onclick="go(S.plus.back||\'myday\')">&#8592; Back</button><b>' + esc(t.title) +
+      '</b><span style="color:var(--muted);font-size:13px;">Full-page tool. Its own buttons work here; Close brings you back.</span>' +
+      '<button class="btn small" style="margin-left:auto" onclick="ttRunTool(\'' + esc(t.fn) + '\',[],[],\'' + esc(t.title).replace(/'/g, '') + '\')">Reload</button>' +
+      '<a class="btn small" style="text-decoration:none" target="_blank" href="' + esc(url) + '">Open in new tab</a></div>' +
+      '<iframe class="frame tool" src="' + esc(url) + '"></iframe>';
+  }
+
+  function menuClick(fn, kind, name) {
+    if (kind.indexOf('n:add:') === 0) { var sheet = kind.slice(6); go('table:' + sheet); var w = setInterval(function () { if (S.tables[sheet]) { clearInterval(w); S.table = sheet; openNew(); } }, 200); setTimeout(function () { clearInterval(w); }, 15000); return; }
+    if (kind.indexOf('n:committee:') === 0) return go('committee:' + kind.slice(12));
+    if (kind === 'n:help') return go('help');
+    if (kind === 'n:loaders') return go('loaders');
+    runTool(fn, [], [], name);
+  }
+  window.ttMenuClick = menuClick;
+
+  /* ===================== NAV ===================== */
+  window.buildNav = function () {
+    base.buildNav();
+    var nav = $('nav');
+    var top = '<div class="nav-group"><div class="gi">' +
+      navItem('insights', 'Insights') + navItem('hub', 'Reporting Hub') + '</div></div>' +
+      navGroup('COMMITTEE', navItem('committee:weekly', 'Weekly Committee Glance') + navItem('committee:T53', 'T53 Committee Glance') + navItem('committee:OTHER', 'Other Funds Glance'));
+    var after = navGroup('SETTINGS AND HELP', navItem('admin', 'Admin') + navItem('help', 'Help and Training') + '<button class="nav-item" onclick="ttTour(true)">Take the tour</button>') +
+      '<div class="nav-group"><div class="gh" style="cursor:default">SHEETS MENU</div><div class="navfind"><input id="navFind" placeholder="Find any menu item" oninput="ttNavFind(this.value)"></div></div><div id="sheetMenu"><div class="loading" style="padding:8px 12px"><span class="spin"></span>Loading menu...</div></div>';
+    var first = nav.querySelector('.nav-group');
+    var wrap = document.createElement('div'); wrap.innerHTML = top;
+    while (wrap.firstChild) nav.insertBefore(wrap.firstChild, first);
+    nav.insertAdjacentHTML('beforeend', after);
+    (S.plus.menu ? Promise.resolve(S.plus.menu) : gs('ttMenu', S.token)).then(function (m) { S.plus.menu = m; paintMenu(''); markNav(); })
+      .catch(function (e) { var el = $('sheetMenu'); if (el) el.innerHTML = '<div style="padding:8px 12px;color:var(--muted);font-size:13px;">Sheets menu not installed yet (TechTrackAppRunner.gs).</div>'; });
+  };
+  function paintMenu(q) {
+    var el = $('sheetMenu'); if (!el || !S.plus.menu) return;
+    q = norm(q);
+    el.innerHTML = S.plus.menu.map(function (g) {
+      var items = g.i.filter(function (it) { return !q || norm(it.name + ' ' + it.desc).indexOf(q) !== -1; });
+      if (!items.length) return '';
+      return navGroup(esc(g.t.toUpperCase()), items.map(function (it) {
+        return '<button class="nav-item' + (it.ok ? '' : ' dim') + '" title="' + esc(it.desc || '') + (it.ok ? '' : ' (not in this project)') + '" onclick="ttMenuClick(\'' + esc(it.fn) + '\',\'' + esc(it.kind) + '\',\'' + esc(it.name).replace(/'/g, '') + '\')">' + esc(it.name) + '</button>';
+      }).join(''), !q);
+    }).join('');
+  }
+  window.ttNavFind = function (v) { paintMenu(v); };
+
+  /* ===================== RENDER ===================== */
+  // The new screens have their own filters, so the shared project filter bar is hidden on them.
+  function hideBar() { var b = $('fbar'); if (b) { b.innerHTML = ''; b.style.display = 'none'; } }
+  window.render = function () {
+    var v = S.view;
+    var fb = $('fbar'); if (fb) fb.style.display = '';
+    if (v === 'tool') { markNav(); return renderTool(); }
+    if (v === 'admin') { markNav(); return renderAdmin(); }
+    if (v.indexOf('committee:') === 0) { markNav(); return renderCommittee(v.slice(10)); }
+    if (v === 'hub') { markNav(); return renderHub(); }
+    if (v === 'insights') { markNav(); return renderInsights(); }
+    if (v === 'help') { markNav(); return renderHelp(); }
+    return base.render();
+  };
+
+  /* ===================== ADMIN ===================== */
+  function renderAdmin(force) {
+    hideBar();
+    if (!S.plus.admin || force) {
+      $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading Admin...</div>';
+      return gs('ttAdminGet', S.token).then(function (a) { S.plus.admin = a; renderAdmin(); }).catch(function (e) { $('view').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+    }
+    var a = S.plus.admin;
+    var sw = function (key, on, label, note) { return '<div class="frow"><label class="switch"><input type="checkbox" ' + (on ? 'checked' : '') + ' onchange="ttAdminSet(\'' + key + '\', this.checked)"> ' + esc(label) + '</label><span style="color:var(--muted);font-size:13px">' + esc(note) + '</span></div>'; };
+    var modes = sw('testMode', a.testMode, 'Test Mode', 'While on, automated emails and Teams posts are held or redirected so you can test safely.') +
+      sw('sendOnlyToMe', a.sendOnlyToMe, 'Send Only To Me', 'Every automated email goes to Chris only.') +
+      sw('automations', a.automations, 'Run sheet automations on Save', 'Archive on Complete, End Date, moves, Teams and notifications run once, in the background, after Save.');
+    var n = a.notif || {};
+    var notif = '<div class="frow"><label class="switch"><input type="checkbox" id="nInst" ' + (n.instant ? 'checked' : '') + '> Instant notifications</label></div>' +
+      '<div class="frow"><label class="switch"><input type="checkbox" id="nDig" ' + (n.digest ? 'checked' : '') + '> Daily digest</label></div>' +
+      '<div class="frow"><label>Recipient</label><input id="nTo" value="' + esc(n.recipient || '') + '" style="max-width:320px"></div>' +
+      '<button class="btn small primary" onclick="ttAdminSet(\'notif\',{instant:$(\'nInst\').checked,digest:$(\'nDig\').checked,recipient:$(\'nTo\').value})">Save notifications</button>';
+    var t = a.teams || { events: {} };
+    var teams = '<div class="frow"><label>Webhook URL</label><input id="tUrl" placeholder="' + (t.hasUrl ? 'Saved (' + esc(t.urlTail) + '). Paste a new one to change it.' : 'Paste the Teams webhook URL') + '" style="max-width:420px"></div>' +
+      Object.keys(t.events || {}).map(function (k) { return '<div class="frow"><label class="switch"><input type="checkbox" class="tEv" data-k="' + esc(k) + '" ' + (t.events[k] ? 'checked' : '') + '> ' + esc(k.replace(/([A-Z])/g, ' $1').replace(/^./, function (c) { return c.toUpperCase(); })) + '</label></div>'; }).join('') +
+      '<button class="btn small primary" onclick="ttAdminTeams()">Save Teams</button> <button class="btn small" onclick="ttAdminTeamsTest()">Send test</button>';
+    var lists = (a.lists || []).length ? '<div class="frow"><label>List</label><select id="vlName" onchange="ttAdminList()" style="max-width:320px">' + a.lists.map(function (l, i) { return '<option value="' + i + '">' + esc(l.name) + ' (' + l.values.length + ')</option>'; }).join('') + '</select></div>' +
+      '<textarea id="vlVals" rows="10" style="width:100%"></textarea><div class="frow"><button class="btn small primary" onclick="ttAdminListSave()">Save list</button><span style="color:var(--muted);font-size:13px">One value per line. Then run Admin > Setup Data Validation.</span></div>'
+      : '<div class="empty">No validation lists found on _ValidationLists.</div>';
+    var trig = '<table class="grid"><tr><th>Handler</th><th>Type</th><th>Source</th></tr>' + (a.triggers || []).map(function (x) { return '<tr><td>' + esc(x.handler) + '</td><td>' + esc(x.type) + '</td><td>' + esc(x.source) + '</td></tr>'; }).join('') + '</table>' +
+      '<div style="color:var(--muted);font-size:13px;margin-top:6px">' + (a.triggers || []).length + ' triggers. Read only: TechTrack is out of trigger slots, so the app never adds one.</div>';
+    var maint = '<div class="frow"><button class="btn small" onclick="ttAdminClear()">Clear caches</button><span style="color:var(--muted);font-size:13px">The next screen reads live from the sheet.</span></div>' +
+      '<div class="frow"><button class="btn small" onclick="openPortal(event)">Vendor Portal Admin</button><span style="color:var(--muted);font-size:13px">Invites, resets and who can sign in (Chris and Kyle need an Admin row).</span></div>' +
+      '<div class="frow"><button class="btn small" onclick="ttTour(true)">Replay the tour</button><button class="btn small" onclick="go(\'help\')">Help and Training</button></div>';
+    $('view').innerHTML = '<div class="hello" style="padding:12px 18px;"><b>Admin</b> <span style="color:var(--muted)">| people, access and TechTrack settings</span> <button class="btn small" style="float:right" onclick="S.plus.admin=null;render()">Reload</button></div>' +
+      '<div class="grid2"><div>' + cardShell('ad:modes', 'Modes', '', '', '<div style="padding:4px 14px 12px">' + modes + '</div>', true) +
+      cardShell('ad:notif', 'Notifications', '', '', '<div style="padding:4px 14px 12px">' + notif + '</div>', true) +
+      cardShell('ad:teams', 'Microsoft Teams', '', '', '<div style="padding:4px 14px 12px">' + teams + '</div>', true) +
+      cardShell('ad:maint', 'Maintenance', '', '', '<div style="padding:4px 14px 12px">' + maint + '</div>', true) + '</div><div>' +
+      cardShell('ad:lists', 'Dropdown lists (_ValidationLists)', '', '', '<div style="padding:4px 14px 12px">' + lists + '</div>', true) +
+      cardShell('ad:trig', 'Triggers', '', '', '<div style="padding:4px 14px 12px">' + trig + '</div>', false) +
+      cardShell('ad:log', 'App Log', '', '<button class="btn small" onclick="event.stopPropagation();ttAdminLog()">Load</button>', '<div id="adLog" style="padding:4px 14px 12px"><div class="empty">Click Load to see the latest app and loader activity.</div></div>', false) +
+      '</div></div>';
+    if ((a.lists || []).length) ttAdminList();
+  }
+  window.ttAdminSet = function (what, value) {
+    gs('ttAdminSet', S.token, what, value).then(function (r) { toast(r.msg || 'Saved'); S.plus.admin = null; if (S.view === 'admin') renderAdmin(true); }).catch(function (e) { toast(e.message, true); });
+  };
+  window.ttAdminTeams = function () {
+    var ev = {}; Array.prototype.forEach.call(document.querySelectorAll('.tEv'), function (c) { ev[c.getAttribute('data-k')] = c.checked; });
+    ttAdminSet('teams', { url: $('tUrl').value.trim(), events: ev });
+  };
+  window.ttAdminTeamsTest = function () { gs('ttAdminTeamsTest', S.token).then(function (r) { toast(r && r.success === false ? (r.error || 'Test failed') : 'Test sent to Teams', r && r.success === false); }).catch(function (e) { toast(e.message, true); }); };
+  window.ttAdminList = function () { var l = S.plus.admin.lists[+$('vlName').value]; $('vlVals').value = l.values.join('\n'); };
+  window.ttAdminListSave = function () { var l = S.plus.admin.lists[+$('vlName').value]; ttAdminSet('list', { name: l.name, values: $('vlVals').value.split('\n') }); };
+  window.ttAdminClear = function () { gs('ttAdminClearCaches', S.token).then(function (r) { S.tables = {}; S.reports = {}; S.plus.hub.data = {}; S.plus.ins = null; S.plus.com = {}; toast(r.msg); }).catch(function (e) { toast(e.message, true); }); };
+  window.ttAdminLog = function () {
+    $('adLog').innerHTML = '<div class="loading"><span class="spin"></span>Loading...</div>';
+    gs('ttAdminLog', S.token, 150).then(function (L) {
+      var tbl = function (t, title) { if (!t.rows.length) return '<div class="empty">' + esc(title) + ': nothing yet.</div>'; return '<div style="font-weight:bold;margin:8px 0 4px">' + esc(title) + '</div><div class="gridwrap" style="max-height:320px"><table class="grid"><tr>' + t.headers.map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr>' + t.rows.map(function (r) { return '<tr>' + r.map(function (v) { return '<td>' + esc(v) + '</td>'; }).join('') + '</tr>'; }).join('') + '</table></div>'; };
+      $('adLog').innerHTML = tbl(L.app, 'TechTrack App Log') + tbl(L.loaders, 'Loader Run Log');
+    }).catch(function (e) { $('adLog').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+  };
+
+  /* ===================== COMMITTEE GLANCE ===================== */
+  var COM = { weekly: { label: 'Weekly Committee Glance', classic: 'showWeeklyCommitteeGlance' }, T53: { label: 'T53 Committee Glance', classic: 'showT53CommitteeGlance' }, OTHER: { label: 'Committee Glance - Other Funds', classic: 'showOtherFundsCommitteeGlance' } };
+  var COMF = [['fund', 'Fund'], ['brand', 'Brand'], ['source', 'Source'], ['category', 'Category'], ['vendor', 'Vendor'], ['priority', 'Priority'], ['coupaStatus', 'Coupa Status']];
+  function comRows(mode) {
+    var d = S.plus.com[mode]; if (!d) return [];
+    var f = S.plus.comF[mode] || {}, q = norm(f.q || '');
+    return d.rows.filter(function (r) {
+      for (var i = 0; i < COMF.length; i++) { var k = COMF[i][0]; if (f[k] && String(r[k] || '') !== f[k]) return false; }
+      if (q && norm([r.hotel, r.hotelCode, r.project, r.vendor, r.category, r.notes].join(' ')).indexOf(q) === -1) return false;
+      return true;
+    });
+  }
+  function renderCommittee(mode) {
+    var meta = COM[mode] || COM.weekly;
+    hideBar();
+    if (!S.plus.com[mode]) {
+      $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading ' + esc(meta.label) + '...</div>';
+      return gs('ttCommittee', S.token, mode).then(function (d) { S.plus.com[mode] = d; if (S.view === 'committee:' + mode) renderCommittee(mode); }).catch(function (e) { $('view').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+    }
+    var d = S.plus.com[mode], f = S.plus.comF[mode] || (S.plus.comF[mode] = {});
+    var rows = comRows(mode), tot = rows.reduce(function (a, r) { return a + (Number(r.cost) || 0); }, 0);
+    var fl = COMF.map(function (x) {
+      var vals = {}; d.rows.forEach(function (r) { if (r[x[0]]) vals[r[x[0]]] = 1; });
+      var keys = Object.keys(vals).sort(); if (!keys.length) return '';
+      return '<div class="f"><label>' + x[1] + '</label><select onchange="ttComF(\'' + mode + '\',\'' + x[0] + '\',this.value)"><option value="">All</option>' + keys.map(function (k) { return '<option' + (f[x[0]] === k ? ' selected' : '') + '>' + esc(k) + '</option>'; }).join('') + '</select></div>';
+    }).join('');
+    var bar = '<div class="bar"><div class="row">' + fl + '<div class="f" style="max-width:240px"><label>Search</label><input value="' + esc(f.q || '') + '" oninput="clearTimeout(window._cq);var v=this.value;window._cq=setTimeout(function(){ttComF(\'' + mode + '\',\'q\',v)},250)"></div>' +
+      '<div class="works"><button class="btn small accent" onclick="ttComEmail(\'' + mode + '\')">Email me</button><button class="btn small" onclick="exportExcel()">Export Excel</button><button class="btn small" onclick="printPdf()">Print / PDF</button>' +
+      '<button class="btn small" onclick="expandAll(true)">Expand all</button><button class="btn small" onclick="expandAll(false)">Collapse all</button>' +
+      '<button class="btn small" onclick="S.plus.com[\'' + mode + '\']=null;render()">Refresh</button><button class="btn small" onclick="ttRunTool(\'' + meta.classic + '\',[],[],\'' + esc(meta.label) + '\')">Classic view</button></div></div></div>';
+    var groups = {};
+    rows.forEach(function (r) { var g = r.source || r.fund || 'Other'; (groups[g] || (groups[g] = [])).push(r); });
+    var body = Object.keys(groups).sort().map(function (g) {
+      var list = groups[g], sum = list.reduce(function (a, r) { return a + (Number(r.cost) || 0); }, 0);
+      return cardShell('cg:' + mode + ':' + g, esc(g), list.length + ' projects', '<span class="count">' + money(sum) + '</span>', list.map(function (r) {
+        var link = r.link ? '<a class="coupa" href="' + esc(r.link) + '" target="_blank" onclick="event.stopPropagation()">Coupa &#8599;</a>' : '';
+        return '<div class="item"><div class="main"><div class="t1">' + esc(r.hotel || '') + ' (' + esc(r.hotelCode || '') + ') | ' + esc(r.project || '') + '</div><div class="t2">' +
+          esc([r.vendor, r.category, r.fund, r.brand, r.week ? 'Week ' + (/^\d{4}-\d{2}-\d{2}/.test(String(r.week)) ? fmtDate(String(r.week).slice(0, 10)) : r.week) : '', r.priority ? 'Priority ' + r.priority : '', r.coupaStatus].filter(Boolean).join(' | ')) + (r.notes ? '<br>' + esc(String(r.notes).slice(0, 240)) : '') + '</div></div>' +
+          '<div style="text-align:right;white-space:nowrap"><div>' + money(r.cost) + '</div>' + (r.deposit ? '<div style="color:var(--muted);font-size:12px">Deposit ' + money(r.deposit) + '</div>' : '') + link + '</div></div>';
+      }).join(''), true);
+    }).join('');
+    $('view').innerHTML = '<div class="hello" style="padding:12px 18px;"><b>' + esc(meta.label) + '</b> <span style="color:var(--muted)">| ' + rows.length + ' projects, ' + money(tot) + ' | data as of ' + esc(d.asOf) + '</span></div>' + bar +
+      '<div class="tiles">' + Object.keys(groups).sort().map(function (g) { var s = groups[g].reduce(function (a, r) { return a + (Number(r.cost) || 0); }, 0); return '<div class="tile"><div class="n">' + groups[g].length + '</div><div class="l">' + esc(g) + ' | ' + money(s) + '</div></div>'; }).join('') + '</div>' +
+      (body || '<div class="empty">Nothing matches these filters.</div>');
+  }
+  window.ttComF = function (mode, k, v) { (S.plus.comF[mode] || (S.plus.comF[mode] = {}))[k] = v; renderCommittee(mode); };
+  window.ttComEmail = function (mode) {
+    var f = S.plus.comF[mode] || {};
+    toast('Sending...');
+    gs('ttCommitteeEmail', S.token, mode, f.fund ? [f.fund] : []).then(function (r) { toast('Committee Glance emailed to ' + r.to); }).catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ===================== REPORTING HUB ===================== */
+  var STARTERS = [
+    { id: 's1', name: 'Open Capex by Fund', sources: ['Capex'], group: 'Fund', sort: { col: 'Cost', dir: 'desc' }, filters: [{ col: 'Status', op: 'not contains', val: 'complete' }] },
+    { id: 's2', name: 'Capex in Approvals', sources: ['Capex'], filters: [{ col: 'Payment Status', op: 'contains', val: 'approval' }], group: 'Vendor' },
+    { id: 's3', name: 'Need to Pay', sources: ['Capex'], filters: [{ col: 'Payment Status', op: 'contains', val: 'need to pay' }], group: 'Fund' },
+    { id: 's4', name: 'Tech Projects by Category', sources: ['Tech Projects Tracker'], group: 'Category' },
+    { id: 's5', name: 'Capex plus Archived Capex by Vendor', sources: ['Capex', 'Archived Capex'], group: 'Vendor', sort: { col: 'Cost', dir: 'desc' } },
+    { id: 's6', name: 'Open Issues by System (Activity Log)', sources: ['Hotel Activity Log'], filters: [{ col: 'Type', op: '=', val: 'Issue' }, { col: 'Status', op: '=', val: 'Open' }], group: 'System', cols: ['Date', 'Hotel Code', 'Hotel Name', 'Project', 'System', 'Vendor', 'Summary', 'Link'] },
+    { id: 's7', name: 'Upcoming Events from Emails', sources: ['Hotel Activity Log'], filters: [{ col: 'Event', op: 'not empty', val: '' }], sort: { col: 'Event Date', dir: 'asc' }, cols: ['Event Date', 'Event', 'Hotel Code', 'Hotel Name', 'Project', 'Vendor', 'Summary'] },
+    { id: 's8', name: 'SharePoint Filings', sources: ['Hotel Activity Log'], filters: [{ col: 'Type', op: 'contains', val: 'Filed' }], group: 'Hotel Code', cols: ['Date', 'Hotel Code', 'Project', 'Type', 'Summary', 'Link'] },
+    { id: 's9', name: 'Draw Lines by Book', sources: ['Hotel Activity Log'], filters: [{ col: 'Type', op: '=', val: 'Draw' }], group: 'Source', cols: ['Hotel Code', 'Hotel Name', 'Project', 'Vendor', 'Amount', 'Summary', 'Link'] },
+    { id: 's10', name: 'Network Health by Hotel', sources: ['Network Hotel Status'], sort: { col: 'Offline or Down', dir: 'desc' } },
+    { id: 's11', name: 'GRE Health by Hotel', sources: ['GRE Hotel Health'], sort: { col: 'Total Latest', dir: 'desc' } },
+    { id: 's12', name: 'End of Life Devices by Hotel', sources: ['End of Life Devices'], group: 'Hotel Code' },
+    { id: 's13', name: 'Open Tickets', sources: ['Tickets'], filters: [{ col: 'Status', op: 'not contains', val: 'closed' }, { col: 'Status', op: 'not contains', val: 'resolved' }], group: 'Category' },
+    { id: 's14', name: 'Hotel Vendors by System', sources: ['Technology Utilities'], cols: ['Hotel Code', 'Hotel Name', 'Guest Wifi Providers', 'Internet Vendor (who we pay)', 'TV to Guestroom (Brand version) Provider', 'PBX Support Vendor', 'Doorlock Vendor', 'POS', 'Firewall Provider/Maintainer'] },
+    { id: 's15', name: 'Project Updates Last 30 Days', sources: ['Project Updates'], filters: [{ col: 'Timestamp', op: 'last days', val: '30' }], sort: { col: 'Timestamp', dir: 'desc' } }
+  ];
+  var OPS = ['contains', 'not contains', '=', '!=', '>', '<', 'empty', 'not empty', 'last days'];
+  function hubSpec() { return S.plus.hub.spec || (S.plus.hub.spec = { name: '', sources: [], cols: null, filters: [], group: '', sort: null }); }
+  function hubLoad(sources) {
+    var need = sources.filter(function (s) { return !S.plus.hub.data[s]; });
+    if (!need.length) return Promise.resolve();
+    return Promise.all(need.map(function (s) { return gs('ttHubData', S.token, s, false).then(function (d) { S.plus.hub.data[s] = d; }); }));
+  }
+  function hubResult() {
+    var sp = hubSpec(), H = S.plus.hub;
+    var colNames = [], seen = {};
+    if (sp.sources.length > 1) { colNames.push('Source'); seen.Source = 1; }
+    sp.sources.forEach(function (s) { var d = H.data[s]; if (d) d.cols.forEach(function (c) { if (!seen[c.name]) { seen[c.name] = 1; colNames.push(c.name); } }); });
+    var types = {}, links = {};
+    sp.sources.forEach(function (s) { var d = H.data[s]; if (d) d.cols.forEach(function (c) { types[c.name] = types[c.name] || c.type; if (c.link) links[c.name] = true; }); });
+    var rows = [];
+    sp.sources.forEach(function (s) {
+      var d = H.data[s]; if (!d) return;
+      var idx = {}; d.cols.forEach(function (c, i) { if (idx[c.name] === undefined) idx[c.name] = i; });
+      d.rows.forEach(function (r) {
+        var o = { _src: s, _r: r.r, v: {}, l: {} };
+        colNames.forEach(function (n) { if (n === 'Source' && sp.sources.length > 1) { o.v.Source = s; return; } var i = idx[n]; o.v[n] = i === undefined ? '' : r.v[i]; if (i !== undefined && r.l && r.l[i]) o.l[n] = r.l[i]; });
+        rows.push(o);
+      });
+    });
+    var today = new Date(); today.setHours(0, 0, 0, 0);
+    (sp.filters || []).forEach(function (f) {
+      if (!f.col || seen[f.col] === undefined) return;
+      var val = norm(f.val);
+      rows = rows.filter(function (o) {
+        var raw = o.v[f.col], v = norm(raw);
+        switch (f.op) {
+          case 'contains': return v.indexOf(val) !== -1;
+          case 'not contains': return v.indexOf(val) === -1;
+          case '=': return v === val;
+          case '!=': return v !== val;
+          case '>': return (typeof raw === 'number' ? raw : v) > (isNaN(+f.val) ? val : +f.val);
+          case '<': return (typeof raw === 'number' ? raw : v) < (isNaN(+f.val) ? val : +f.val);
+          case 'empty': return v === '';
+          case 'not empty': return v !== '';
+          case 'last days': var d = toDate(String(raw).slice(0, 10)); return d && (today - d) / 86400000 <= (+f.val || 30);
+        }
+        return true;
+      });
+    });
+    if (sp.sort && seen[sp.sort.col] !== undefined) {
+      var k = sp.sort.col, dir = sp.sort.dir === 'desc' ? -1 : 1;
+      rows.sort(function (a, b) { var A = a.v[k], B = b.v[k]; if (typeof A === 'number' && typeof B === 'number') return (A - B) * dir; return String(A || '').localeCompare(String(B || '')) * dir; });
+    }
+    // Default columns: the first 14 plus every column that carries links (Coupa and others), so links stay on reports.
+    var dflt = colNames.slice(0, 14); colNames.forEach(function (c) { if (links[c] && dflt.indexOf(c) === -1) dflt.push(c); });
+    var show = (sp.cols && sp.cols.length ? sp.cols.filter(function (c) { return seen[c] !== undefined; }) : dflt);
+    if (!show.length) show = dflt;
+    return { all: colNames, cols: show, rows: rows, types: types, links: links };
+  }
+  function cellHtml(o, c, types) {
+    var v = o.v[c];
+    var t = types[c] === 'money' ? money(v) : (types[c] === 'date' ? fmtDate(v) : String(v === null || v === undefined ? '' : v));
+    if (o.l[c]) return '<a class="coupa" href="' + esc(o.l[c]) + '" target="_blank">' + esc(t || 'Open') + ' &#8599;</a>';
+    return esc(t.length > 220 ? t.slice(0, 220) + '...' : t);
+  }
+  function renderHub() {
+    hideBar();
+    var H = S.plus.hub, sp = hubSpec();
+    if (!H.sources) {
+      $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading the Reporting Hub...</div>';
+      return Promise.all([gs('ttHubSources', S.token), gs('ttHubSaved', S.token)]).then(function (x) { H.sources = x[0]; H.saved = x[1]; renderHub(); }).catch(function (e) { $('view').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+    }
+    var srcOpts = H.sources.map(function (s) { return '<option value="' + esc(s.name) + '"' + (sp.sources.indexOf(s.name) !== -1 ? ' selected' : '') + '>' + esc(s.name) + ' (' + s.rows + ')</option>'; }).join('');
+    var lib = '<div class="colpick" style="max-height:260px">' +
+      '<div style="color:var(--dim);font-size:12px;margin:2px 0 4px">SAVED (shared with Kyle)</div>' + ((H.saved || []).map(function (r) { return '<div class="frow" style="margin:2px 0"><a href="#" onclick="ttHubOpen(\'' + esc(r.id) + '\',true);return false">' + esc(r.name) + '</a><span style="color:var(--dim);font-size:12px">' + esc(r.by || '') + '</span><a href="#" style="margin-left:auto;color:var(--muted)" onclick="ttHubDel(\'' + esc(r.id) + '\');return false">delete</a></div>'; }).join('') || '<div style="color:var(--muted);font-size:13px">None yet.</div>') +
+      '<div style="color:var(--dim);font-size:12px;margin:8px 0 4px">STARTER LIBRARY</div>' + STARTERS.map(function (r) { return '<div style="margin:2px 0"><a href="#" onclick="ttHubOpen(\'' + r.id + '\',false);return false">' + esc(r.name) + '</a></div>'; }).join('') + '</div>';
+    var sideIn = cardShell('hb:lib', 'Reports', '', '', '<div class="cb">' + lib + '</div>', true) +
+      cardShell('hb:src', 'Sources', 'Ctrl or Cmd to combine tabs', '', '<div class="cb"><select multiple size="9" onchange="ttHubSources(this)">' + srcOpts + '</select></div>', true);
+    var side = '<div class="hubside">' + sideIn + '</div>';
+    if (!sp.sources.length) {
+      $('view').innerHTML = '<div class="hello" style="padding:12px 18px;"><b>Reporting Hub</b> <span style="color:var(--muted)">| any TechTrack tab, combined, filtered, grouped and sorted, with Blue Box exports</span></div><div class="hub">' + side + '<div class="empty">Pick a report from the library or one or more Sources to start.</div></div>';
+      return;
+    }
+    var missing = sp.sources.filter(function (s) { return !H.data[s]; });
+    if (missing.length) {
+      $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading ' + esc(missing.join(', ')) + '...</div>';
+      return hubLoad(sp.sources).then(renderHub).catch(function (e) { toast(e.message, true); sp.sources = sp.sources.filter(function (s) { return H.data[s]; }); renderHub(); });
+    }
+    var gone = sp.sources.filter(function (s) { return H.data[s] && H.data[s].missing; });
+    if (gone.length) {
+      var hal = gone.indexOf('Hotel Activity Log') !== -1;
+      $('view').innerHTML = '<div class="hello" style="padding:12px 18px;"><b>Reporting Hub</b> <span style="color:var(--muted)">| ' + esc(sp.name || sp.sources.join(' + ')) + '</span></div><div class="hub">' + side +
+        '<div class="empty">The ' + esc(gone.join(', ')) + ' tab is not in TechTrack yet.' + (hal ? ' To create it, open Loader Hub and run Hotel Activity Log &gt; Apply, then click Refresh data here. <button class="btn small" onclick="go(\'loaders\')">Open Loader Hub</button> <button class="btn small" onclick="ttHubRefresh()">Refresh data</button>' : '') + '</div></div>';
+      return;
+    }
+    var res = hubResult(); H.res = res;
+    var colPick = '<div class="colpick">' + res.all.map(function (c) { return '<label><input type="checkbox" ' + (res.cols.indexOf(c) !== -1 ? 'checked' : '') + ' onchange="ttHubCol(\'' + esc(c).replace(/'/g, '\\\'') + '\',this.checked)"> ' + esc(c) + '</label>'; }).join('') + '</div>';
+    var opt = function (sel) { return '<option value="">(none)</option>' + res.all.map(function (c) { return '<option' + (sel === c ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join(''); };
+    var filt = (sp.filters || []).map(function (f, i) {
+      return '<div class="fl"><select onchange="ttHubF(' + i + ',\'col\',this.value)">' + opt(f.col) + '</select><select onchange="ttHubF(' + i + ',\'op\',this.value)">' + OPS.map(function (o) { return '<option' + (f.op === o ? ' selected' : '') + '>' + o + '</option>'; }).join('') + '</select>' +
+        '<input value="' + esc(f.val || '') + '" onchange="ttHubF(' + i + ',\'val\',this.value)"><button class="btn small" onclick="ttHubF(' + i + ',\'del\')">x</button></div>';
+    }).join('') + '<button class="btn small" onclick="ttHubF(-1,\'add\')">Add filter</button>';
+    sideIn += cardShell('hb:cols', 'Columns', res.cols.length + ' of ' + res.all.length, '', '<div class="cb">' + colPick + '</div>', false) +
+      cardShell('hb:flt', 'Filters', (sp.filters || []).length + ' active', '', '<div class="cb">' + filt + '</div>', true) +
+      cardShell('hb:grp', 'Group and sort', '', '', '<div class="cb"><div class="frow"><label style="min-width:60px">Group</label><select onchange="ttHubSet(\'group\',this.value)">' + opt(sp.group) + '</select></div>' +
+        '<div class="frow"><label style="min-width:60px">Sort</label><select onchange="ttHubSort(this.value,null)">' + opt(sp.sort && sp.sort.col) + '</select><select style="max-width:90px" onchange="ttHubSort(null,this.value)"><option value="asc"' + (sp.sort && sp.sort.dir === 'desc' ? '' : ' selected') + '>A to Z</option><option value="desc"' + (sp.sort && sp.sort.dir === 'desc' ? ' selected' : '') + '>Z to A</option></select></div></div>', true);
+    side = '<div class="hubside">' + sideIn + '</div>';
+    var numCols = res.cols.filter(function (c) { return res.types[c] === 'money' || res.types[c] === 'number'; });
+    var head = '<tr><th>#</th>' + res.cols.map(function (c) { return '<th onclick="ttHubSort(\'' + esc(c).replace(/'/g, '\\\'') + '\',\'' + (sp.sort && sp.sort.col === c && sp.sort.dir === 'asc' ? 'desc' : 'asc') + '\')">' + esc(c) + (sp.sort && sp.sort.col === c ? (sp.sort.dir === 'desc' ? ' &#9660;' : ' &#9650;') : '') + '</th>'; }).join('') + '</tr>';
+    var totRow = function (list, label) { return '<tr class="tot"><td></td>' + res.cols.map(function (c, i) { if (i === 0) return '<td>' + esc(label) + ' (' + list.length + ')</td>'; if (numCols.indexOf(c) !== -1) { var s = list.reduce(function (a, o) { return a + (Number(o.v[c]) || 0); }, 0); return '<td class="num">' + (res.types[c] === 'money' ? money(s) : s.toLocaleString()) + '</td>'; } return '<td></td>'; }).join('') + '</tr>'; };
+    var body = '', n = 0, LIMIT = 1500;
+    var rowHtml = function (o) { n++; return n > LIMIT ? '' : '<tr><td>' + n + '</td>' + res.cols.map(function (c) { return '<td' + (numCols.indexOf(c) !== -1 ? ' class="num"' : '') + '>' + cellHtml(o, c, res.types) + '</td>'; }).join('') + '</tr>'; };
+    if (sp.group && res.all.indexOf(sp.group) !== -1) {
+      var groups = {}, order = [];
+      res.rows.forEach(function (o) { var g = String(o.v[sp.group] === '' || o.v[sp.group] === undefined ? '(blank)' : o.v[sp.group]); if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(o); });
+      if (!sp.sort) order.sort();
+      order.forEach(function (g) {
+        var open = S.open['hg:' + g] !== false;
+        body += '<tr class="grp" onclick="S.open[\'hg:' + esc(g).replace(/'/g, '') + '\']=' + (open ? 'false' : 'true') + ';renderHubKeep()"><td colspan="' + (res.cols.length + 1) + '">' + (open ? '&#9662; ' : '&#9656; ') + esc(sp.group) + ': ' + esc(g) + ' (' + groups[g].length + ')' +
+          numCols.map(function (c) { var s = groups[g].reduce(function (a, o) { return a + (Number(o.v[c]) || 0); }, 0); return ' | ' + esc(c) + ' ' + (res.types[c] === 'money' ? money(s) : s.toLocaleString()); }).join('') + '</td></tr>';
+        if (open) groups[g].forEach(function (o) { body += rowHtml(o); });
+      });
+    } else res.rows.forEach(function (o) { body += rowHtml(o); });
+    var title = sp.name || sp.sources.join(' + ');
+    $('view').innerHTML = '<div class="hello" style="padding:12px 18px;"><b>Reporting Hub</b> <span style="color:var(--muted)">| ' + esc(title) + ' | ' + res.rows.length + ' rows' + (res.rows.length > LIMIT ? ' (showing ' + LIMIT + ', exports include all)' : '') + '</span></div>' +
+      '<div class="bar"><div class="row"><div class="f" style="max-width:300px"><label>Report name</label><input id="hubName" value="' + esc(sp.name || '') + '" placeholder="Name it to save"></div>' +
+      '<div class="works"><button class="btn small accent" onclick="ttHubSave()">Save (shared)</button><button class="btn small" onclick="S.plus.hub.spec=null;render()">New</button>' +
+      '<button class="btn small" onclick="ttHubRefresh()">Refresh data</button><button class="btn small" onclick="exportExcel()">Export Excel</button><button class="btn small" onclick="printPdf()">Print / PDF</button><button class="btn small" onclick="emailDash()">Email as dashboard</button></div></div></div>' +
+      '<div class="hub">' + side + '<div class="gridwrap"><table class="grid">' + head + totRow(res.rows, 'Total') + body + '</table></div></div>';
+  }
+  window.renderHubKeep = function () { var g = document.querySelector('.gridwrap'), y = g ? g.scrollTop : 0; renderHub(); var g2 = document.querySelector('.gridwrap'); if (g2) g2.scrollTop = y; };
+  window.ttHubOpen = function (id, saved) {
+    var r = (saved ? S.plus.hub.saved : STARTERS).filter(function (x) { return x.id === id; })[0]; if (!r) return;
+    S.plus.hub.spec = JSON.parse(JSON.stringify({ id: saved ? r.id : '', name: r.name, sources: r.sources, cols: r.cols || null, filters: r.filters || [], group: r.group || '', sort: r.sort || null }));
+    renderHub();
+  };
+  window.ttHubSources = function (sel) { var sp = hubSpec(); sp.sources = Array.prototype.filter.call(sel.options, function (o) { return o.selected; }).map(function (o) { return o.value; }); sp.cols = null; renderHub(); };
+  window.ttHubCol = function (c, on) { var sp = hubSpec(), res = S.plus.hub.res; var cur = (sp.cols && sp.cols.length ? sp.cols : res.cols).slice(); if (on && cur.indexOf(c) === -1) cur.push(c); if (!on) cur = cur.filter(function (x) { return x !== c; }); sp.cols = res.all.filter(function (x) { return cur.indexOf(x) !== -1; }); renderHubKeep(); };
+  window.ttHubF = function (i, k, v) { var sp = hubSpec(); sp.filters = sp.filters || []; if (k === 'add') sp.filters.push({ col: '', op: 'contains', val: '' }); else if (k === 'del') sp.filters.splice(i, 1); else sp.filters[i][k] = v; renderHub(); };
+  window.ttHubSet = function (k, v) { hubSpec()[k] = v; renderHub(); };
+  window.ttHubSort = function (col, dir) { var sp = hubSpec(); sp.sort = sp.sort || { col: '', dir: 'asc' }; if (col !== null) sp.sort.col = col; if (dir !== null) sp.sort.dir = dir; if (!sp.sort.col) sp.sort = null; renderHubKeep(); };
+  window.ttHubRefresh = function () { var sp = hubSpec(); toast('Refreshing...'); Promise.all(sp.sources.map(function (s) { return gs('ttHubData', S.token, s, true).then(function (d) { S.plus.hub.data[s] = d; }); })).then(function () { renderHub(); toast('Up to date'); }).catch(function (e) { toast(e.message, true); }); };
+  window.ttHubSave = function () {
+    var sp = hubSpec(); sp.name = ($('hubName').value || '').trim(); if (!sp.name) return toast('Name the report first', true);
+    gs('ttHubSave', S.token, { id: sp.id || '', name: sp.name, sources: sp.sources, cols: sp.cols, filters: sp.filters, group: sp.group, sort: sp.sort }).then(function (list) { S.plus.hub.saved = list; var me = list.filter(function (x) { return x.name === sp.name; })[0]; if (me) sp.id = me.id; toast('Saved for you and Kyle'); renderHub(); }).catch(function (e) { toast(e.message, true); });
+  };
+  window.ttHubDel = function (id) { if (!confirm('Delete this saved report for everyone?')) return; gs('ttHubDelete', S.token, id).then(function (list) { S.plus.hub.saved = list; renderHub(); }).catch(function (e) { toast(e.message, true); }); };
+
+  /* ===================== INSIGHTS ===================== */
+  function renderInsights() {
+    hideBar();
+    if (!S.plus.ins) {
+      $('view').innerHTML = '<div class="loading"><span class="spin"></span>Reading everything TechTrack tracks...</div>';
+      return gs('ttInsights', S.token).then(function (d) { S.plus.ins = d; if (S.view === 'insights') renderInsights(); }).catch(function (e) { $('view').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+    }
+    var d = S.plus.ins, f = S.plus.insF, q = norm(f.q || '');
+    var items = d.items.filter(function (x) { return (!f.kind || x.kind === f.kind) && (!f.sev || x.sev === f.sev) && (!f.system || x.system === f.system) && (!f.code || x.code === f.code) && (!q || norm([x.hotel, x.code, x.title, x.detail].join(' ')).indexOf(q) !== -1); });
+    var opts = function (k, label, map) { var v = {}; d.items.forEach(function (x) { if (x[k]) v[x[k]] = map ? map(x) : x[k]; }); var keys = Object.keys(v).sort(); return '<div class="f"><label>' + label + '</label><select onchange="S.plus.insF.' + k + '=this.value;render()"><option value="">All</option>' + keys.map(function (kk) { return '<option value="' + esc(kk) + '"' + (f[k] === kk ? ' selected' : '') + '>' + esc(v[kk]) + '</option>'; }).join('') + '</select></div>'; };
+    var KIND = { recurring: 'Recurring issues', issue: 'Open issues', ticket: 'Aging tickets', network: 'Network', eol: 'End of life', gre: 'GRE', event: 'Coming up' };
+    var bar = '<div class="bar"><div class="row">' + opts('sev', 'Severity') + opts('kind', 'Type', function (x) { return KIND[x.kind] || x.kind; }) + opts('system', 'System') + opts('code', 'Hotel', function (x) { return (x.hotel || x.code) + ' (' + x.code + ')'; }) +
+      '<div class="f" style="max-width:240px"><label>Search</label><input value="' + esc(f.q || '') + '" oninput="clearTimeout(window._iq);var v=this.value;window._iq=setTimeout(function(){S.plus.insF.q=v;render()},250)"></div>' +
+      '<div class="works"><button class="btn small" onclick="S.plus.ins=null;render()">Refresh</button><button class="btn small" onclick="expandAll(true)">Expand all</button><button class="btn small" onclick="expandAll(false)">Collapse all</button><button class="btn small" onclick="exportExcel()">Export Excel</button><button class="btn small" onclick="printPdf()">Print / PDF</button><button class="btn small" onclick="emailDash()">Email as dashboard</button></div></div></div>';
+    var count = function (k) { return items.filter(function (x) { return x.kind === k; }).length; };
+    var tiles = '<div class="tiles">' + ['recurring', 'issue', 'ticket', 'network', 'gre', 'event'].map(function (k) { return '<div class="tile ' + (k === 'recurring' ? 'bad' : (k === 'event' ? 'good' : 'warn')) + '" onclick="S.plus.insF.kind=\'' + k + '\';render()"><div class="n">' + count(k) + '</div><div class="l">' + KIND[k] + '</div></div>'; }).join('') + '</div>';
+    var groups = {}; items.forEach(function (x) { (groups[x.kind] || (groups[x.kind] = [])).push(x); });
+    var body = ['recurring', 'issue', 'ticket', 'network', 'gre', 'eol', 'event'].filter(function (k) { return groups[k]; }).map(function (k) {
+      return cardShell('in:' + k, KIND[k], '', '<span class="count">' + groups[k].length + '</span>', groups[k].map(function (x, i) {
+        var kb = (x.kb || []).map(function (a) { return '<div class="kb"><b>KB ' + esc(a.id) + ':</b> ' + esc(a.q) + '<br>' + esc(a.a.slice(0, 380)) + '</div>'; }).join('');
+        return '<div class="item ins ' + esc(x.sev) + '" style="display:block"><div class="t1">' + esc(x.title) + '</div><div class="t2">' + esc((x.hotel || '') + (x.code ? ' (' + x.code + ')' : '') + (x.system ? ' | ' + x.system : '')) + '</div>' +
+          (x.detail ? '<div class="t2" style="margin-top:4px">' + esc(x.detail) + '</div>' : '') + '<div style="margin-top:6px"><b>Next:</b> ' + esc(x.action || '') + '</div>' + kb +
+          (x.code ? '<div style="margin-top:6px"><button class="btn small primary" onclick="ttSupport(\'' + esc(x.code) + '\',\'' + esc(x.system || '') + '\',' + i + ',\'' + k + '\')">Support context</button> <button class="btn small" onclick="hotelDetail(\'' + esc(x.code) + '\')">Hotel</button></div>' : '') + '</div>';
+      }).join(''), k === 'recurring' || k === 'event');
+    }).join('');
+    $('view').innerHTML = '<div class="hello" style="padding:12px 18px;"><b>Insights</b> <span style="color:var(--muted)">| ' + items.length + ' items from projects, tickets, emails, network scans, GRE and the Knowledge Base | ' + esc(d.asOf) + '</span><div style="margin-top:6px;color:var(--amber)">' + esc(d.note) + '</div></div>' + bar + tiles + (body || '<div class="empty">Nothing needs attention for these filters.</div>');
+    S.plus.insGroups = groups;
+  }
+
+  /* ===================== SUPPORT CONTEXT ===================== */
+  window.ttSupport = function (code, system, idx, kind) {
+    var x = kind && S.plus.insGroups && S.plus.insGroups[kind] ? S.plus.insGroups[kind][idx] : null;
+    var text = x ? x.title + ' ' + x.detail : '';
+    if (S.drawer && dirtyCount() && !closeDrawer()) return;
+    S.drawer = { mode: 'support', code: code };
+    drawerOpen('<div class="dh"><div class="x">' + drawerBtns() + '</div><h3>Support context</h3><div class="sub">' + esc(code) + (system ? ' | ' + esc(system) : '') + '</div></div><div class="dbody" id="dbody"><div class="loading"><span class="spin"></span>Pulling updates, emails, tickets, network, GRE and the Knowledge Base...</div></div>');
+    gs('ttSupportContext', S.token, code, system || '', text).then(function (c) { S.drawer.ctx = c; paintSupport(c, x); }).catch(function (e) { $('dbody').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+  };
+  function sec(title, inner) { return '<div class="fgroup"><div class="gh2">' + esc(title) + '</div><div style="padding:6px 14px 12px">' + inner + '</div></div>'; }
+  function paintSupport(c, x) {
+    var h = '';
+    if (x) h += sec('The issue', '<b>' + esc(x.title) + '</b><div style="color:var(--muted);margin-top:4px">' + esc(x.detail || '') + '</div>');
+    h += sec('On-property first (before anyone engages the brand)', '<ol class="steps-ol">' + c.steps.map(function (s) { return '<li><label class="switch"><input type="checkbox"> ' + esc(s) + '</label></li>'; }).join('') + '</ol>');
+    h += sec('System vendor support', c.support.length ? c.support.map(function (s) { return '<div style="margin:4px 0"><b>' + esc(s.system) + ':</b> ' + esc(s.vendor) + (s.phone ? ' | ' + esc(s.phone) : '') + (s.email ? ' | <a href="mailto:' + esc(s.email) + '">' + esc(s.email) + '</a>' : '') + '</div>'; }).join('') : '<div class="empty">No vendor on Technology Utilities for this system.</div>');
+    if (c.network || c.alerts.length) h += sec('Network scan', (c.network ? '<div class="kv">' + ['Scan Date', 'Source', 'Vendor Health', 'Total Devices', 'Online', 'Offline or Down', 'Active Alerts', 'Open Tickets', 'Past EOL', 'Circuit Mbps'].filter(function (k) { return c.network[k]; }).map(function (k) { return '<div class="k">' + esc(k) + '</div><div class="v">' + esc(c.network[k]) + '</div>'; }).join('') + '</div>' : '') +
+      c.alerts.map(function (a) { return '<div style="margin:3px 0">' + pill(a.severity || 'Alert') + ' ' + esc(a.alert) + (a.device ? ' (' + esc(a.device) + ')' : '') + ' ' + esc(a.when || '') + '</div>'; }).join(''));
+    if (c.gre) h += sec('GRE (Enseo daily report)', '<div class="kv">' + Object.keys(c.gre).filter(function (k) { return !/hotel name/i.test(k); }).map(function (k) { return '<div class="k">' + esc(k) + '</div><div class="v">' + esc(c.gre[k]) + '</div>'; }).join('') + '</div>');
+    h += sec('Tickets', c.tickets.length ? c.tickets.map(function (t) { return '<div class="item" style="display:block"><div class="t1">' + esc(t.source + ' ' + t.id) + ' ' + pill(t.status) + '</div><div class="t2">' + esc(t.when) + ' | ' + esc(t.text) + (t.vendorTicket ? ' | Vendor ticket ' + esc(t.vendorTicket) : '') + (t.brandTicket ? ' | Brand ticket ' + esc(t.brandTicket) : '') + (t.notes ? '<br>' + esc(t.notes) : '') + '</div></div>'; }).join('') : '<div class="empty">No tickets on this system in TechTrack.</div>');
+    h += sec('Project Updates (60 days)', c.updates.length ? c.updates.map(function (u) { return '<div class="item" style="display:block"><div class="t2"><b>' + esc(u.when) + ' | ' + esc(u.project) + '</b><br>' + esc(u.text) + '</div></div>'; }).join('') : '<div class="empty">No recent updates on this system.</div>');
+    h += sec('Emails, filings and events', c.activity.length ? c.activity.map(function (a) { return '<div class="item" style="display:block"><div class="t2"><b>' + esc(a.when) + ' | ' + esc(a.type) + (a.status && a.status !== 'Logged' ? ' | ' + esc(a.status) : '') + (a.event ? ' | ' + esc(a.event) : '') + '</b><br>' + esc(a.text) + (a.link ? ' <a class="coupa" target="_blank" href="' + esc(a.link) + '">Open &#8599;</a>' : '') + '</div></div>'; }).join('') : '<div class="empty">Nothing in the Hotel Activity Log for this system.</div>');
+    h += sec('Knowledge Base', c.kb.length ? c.kb.map(function (a) { return '<div class="kb"><b>' + esc(a.id + ' ' + a.category) + ':</b> ' + esc(a.q) + '<br>' + esc(a.a) + '</div>'; }).join('') : '<div class="empty">No close Knowledge Base match.</div>');
+    h += sec('As-builts', '<a class="coupa" target="_blank" href="' + esc(c.asBuilts.search) + '">Find ' + esc(c.code) + ' As-Built in SharePoint &#8599;</a> <a class="coupa" target="_blank" href="' + esc(c.asBuilts.folder) + '">As Builts folder &#8599;</a>');
+    h += '<div style="padding:10px 14px"><button class="btn small primary" onclick="ttSupportCopy()">Copy hotel action list</button> <span style="color:var(--muted);font-size:13px">Plain text for your reply. Every action is on the hotel and its vendor.</span></div>';
+    $('dbody').innerHTML = h;
+  }
+  window.ttSupportCopy = function () {
+    var c = S.drawer && S.drawer.ctx; if (!c) return;
+    var t = 'Next steps for ' + (c.hotelName || c.code) + (c.system ? ' (' + c.system + ')' : '') + ':\n' + c.steps.map(function (s, i) { return (i + 1) + '. ' + s; }).join('\n') +
+      (c.support.length ? '\n\nVendor support:\n' + c.support.map(function (s) { return s.system + ': ' + s.vendor + (s.phone ? ', ' + s.phone : '') + (s.email ? ', ' + s.email : ''); }).join('\n') : '') + '\n\nChris Perry';
+    (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Copied'); }).catch(function () { modal('Copy this', '<textarea rows="12" style="width:100%">' + esc(t) + '</textarea>', [{ label: 'Close', value: 1 }]); });
+  };
+  window.hotelDetail = function (code) {
+    base.hotelDetail(code);
+    setTimeout(function () { var x = document.querySelector('#drawer .dh .x'); if (x && !x.querySelector('.supbtn')) x.insertAdjacentHTML('afterbegin', '<button class="btn small primary supbtn" onclick="ttSupport(\'' + esc(code) + '\',\'\')">Support context</button>'); }, 0);
+  };
+
+  /* ===================== EXPORTS (The Works) for the new screens ===================== */
+  window.exportModel = function () {
+    var v = S.view, asOf = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+    if (v.indexOf('committee:') === 0) {
+      var mode = v.slice(10), rows = comRows(mode), meta = COM[mode] || COM.weekly, f = S.plus.comF[mode] || {};
+      rows = rows.slice().sort(function (a, b) { return String(a.source || '').localeCompare(String(b.source || '')) || String(a.hotel || '').localeCompare(String(b.hotel || '')); });
+      var tot = rows.reduce(function (a, r) { return a + (Number(r.cost) || 0); }, 0), filters = Object.keys(f).filter(function (k) { return f[k]; }).map(function (k) { return k + ' = ' + f[k]; });
+      return { title: meta.label, subtitle: 'TechTrack | ' + (filters.length ? 'Filtered: ' + filters.join(', ') : 'All'), filters: filters.join(', '), sortIndex: 0,
+        summary: [rows.length + ' projects totaling ' + money(tot) + '.', 'Grouped by source, then hotel.'],
+        columns: ['Source', 'Hotel Code', 'Hotel Name', 'Project', 'Vendor', 'Category', 'Fund', 'Priority', 'Cost', 'Deposit', 'Coupa'],
+        money: [0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0].map(Boolean),
+        rows: rows.map(function (r) { return [r.source || '', r.hotelCode || '', r.hotel || '', r.project || '', r.vendor || '', r.category || '', r.fund || '', r.priority || '', Number(r.cost) || 0, Number(r.deposit) || 0, r.link ? { text: 'Coupa', url: r.link } : '']; }), asOf: (S.plus.com[mode] || {}).asOf || asOf };
+    }
+    if (v === 'hub' && S.plus.hub.res) {
+      var res = S.plus.hub.res, sp = hubSpec(), cols = res.cols.slice(), list = res.rows.slice(), si = 0;
+      if (sp.group && cols.indexOf(sp.group) === -1) cols.unshift(sp.group);
+      if (sp.group) { si = cols.indexOf(sp.group); list.sort(function (a, b) { return String(a.v[sp.group] || '').localeCompare(String(b.v[sp.group] || '')); }); }
+      else if (sp.sort && cols.indexOf(sp.sort.col) !== -1) si = cols.indexOf(sp.sort.col);
+      var mny = cols.map(function (c) { return res.types[c] === 'money'; });
+      var sum = [list.length + ' rows from ' + sp.sources.join(' + ') + '.'];
+      if (sp.group) { var g = {}; list.forEach(function (o) { var k = String(o.v[sp.group] || '(blank)'); g[k] = (g[k] || 0) + 1; }); sum.push('Grouped by ' + sp.group + ': ' + Object.keys(g).slice(0, 12).map(function (k) { return k + ' ' + g[k]; }).join(', ') + (Object.keys(g).length > 12 ? ', and more' : '') + '.'); }
+      cols.forEach(function (c, i) { if (mny[i]) sum.push(c + ' total: ' + money(list.reduce(function (a, o) { return a + (Number(o.v[c]) || 0); }, 0)) + '.'); });
+      return { title: sp.name || ('Report - ' + sp.sources.join(' + ')), subtitle: 'TechTrack Reporting Hub | ' + ((sp.filters || []).filter(function (f) { return f.col; }).map(function (f) { return f.col + ' ' + f.op + ' ' + (f.val || ''); }).join(', ') || 'No filters'),
+        filters: (sp.filters || []).map(function (f) { return f.col + ' ' + f.op + ' ' + f.val; }).join(', '), summary: sum, columns: cols, money: mny, sortIndex: si,
+        rows: list.map(function (o) { return cols.map(function (c) { var val = o.v[c]; if (o.l[c]) return { text: String(val || 'Open'), url: o.l[c] }; return res.types[c] === 'money' ? (Number(val) || 0) : (res.types[c] === 'date' ? fmtDate(val) : (val === null || val === undefined ? '' : val)); }); }),
+        asOf: (S.plus.hub.data[sp.sources[0]] || {}).asOf || asOf };
+    }
+    if (v === 'insights' && S.plus.ins) {
+      var it = S.plus.ins.items.slice().sort(function (a, b) { return String(a.hotel || a.code).localeCompare(String(b.hotel || b.code)); });
+      return { title: 'TechTrack Insights', subtitle: 'TechTrack | rules over projects, tickets, emails, network scans and GRE', filters: '', sortIndex: 1,
+        summary: [it.length + ' items need attention.', it.filter(function (x) { return x.kind === 'recurring'; }).length + ' recurring issues (3 or more in 30 days at the same hotel and system).', S.plus.ins.note],
+        columns: ['Severity', 'Hotel', 'Hotel Code', 'System', 'Item', 'Detail', 'Next Step'], money: [0, 0, 0, 0, 0, 0, 0].map(Boolean),
+        rows: it.map(function (x) { return [x.sev, x.hotel || '', x.code || '', x.system || '', x.title, x.detail || '', x.action || '']; }), asOf: S.plus.ins.asOf };
+    }
+    return base.exportModel();
+  };
+
+  /* ===================== HELP AND TRAINING ===================== */
+  var HELP = [
+    ['Start here', '<p>New to TechTrack Web, or want the whole picture? Open the <b>TechTrack Web Guide</b> (how Web works, then every screen in the order of your left menu, searchable and printable) or <b>TechTrack Web Training</b> (hands-on modules that open each screen and start its page tour). Both are written for Web: the left menu, screens, buttons, the project panel and Save.</p><p><button class="btn small primary" onclick="go(\'guide\')">Open the Web Guide</button> <button class="btn small" onclick="go(\'training\')">Open Web Training</button> <button class="btn small" onclick="ttTour(true)">Take the menu tour</button></p>'],
+    ['Getting around', '<p>Every screen is in the left menu, grouped by job: My Day, Company Summary, Insights and Reporting Hub on top, then Projects, Project Updates, Project Dashboards, Money, Committee, Hotels, Systems, Brands, Vendors, Tickets and Tasks, Alerts and Renewals, Reports, Tools, Admin and Archive. Groups start closed; click a group name to open it. Type in <b>Find in the menu</b> to jump to any screen. Anything new that has no group yet shows under <b>OTHER</b>.</p><p>In the top bar: <b>Smart Search</b> (a hotel code plus a topic, then Enter), <b>?</b> for help on the screen you are on, the <b>Vendor Portal</b> button (admins), and the <b>bell</b> (past-date plus in-approval projects; click it for My Day).</p>'],
+    ['Filters, exports and cards', '<p>The Works bar under the top bar filters everything on the screen at once (Brand, Fund, RVP, Hotel, Status, Payment Status, Vendor, Category, and Search). Each active filter is a chip; click it to drop it, or Clear all. <b>Refresh</b> reads the data again now. <b>Expand all</b> and <b>Collapse all</b> open or close every card; cards start closed on every visit. <b>Export Excel</b>, <b>Print / PDF</b> and <b>Email as dashboard</b> give the Blue Box version of exactly what the filters show.</p>'],
+    ['Editing and Save', '<p>Click a project to open the panel on the right. Tabs: <b>Details</b>, <b>Project Updates</b>, <b>Vendor invoices</b> (when the vendor has sent any), <b>Checklist</b> and <b>Vendor Portal</b> (when the portal has anything for the job). Change fields, then press <b>Save</b> (or Ctrl+S). Nothing is written until you save; the save bar counts your changes and <b>Discard</b> drops them.</p><p>After Save confirms, TechTrack runs its automations once in the background for what you changed: archive on Complete, End Date stamps, moves between stages, Teams posts and notifications. If Save says some changes were skipped, someone else changed those fields after you opened the panel; Refresh and redo them. Calculated fields are locked.</p><p>Coupa links in the panel header open the PO, requisition or invoice in Coupa in a new browser tab. <b>Request invoice</b> asks the vendor for an invoice through the Vendor Portal.</p>'],
+    ['Project stages and the Stage Board', '<p>Every project sits in one stage: <b>Scoping &gt; Future Capex &gt; Committee &gt; Cleared for Takeoff &gt; Tech Projects &gt; Payments Due &gt; Archive</b>. Projects move when their status changes. <b>Projects &gt; Stage Board</b> shows all seven with counts and dollars. On Scoping, Future Capex and Committee, tick projects (or Select all shown), pick <b>Move selected to</b>, check the yellow preview and press Confirm. Up to 50 at a time.</p>'],
+    ['Payments, approval codes and invoices', '<p><b>Money &gt; Payments Due</b> lists every payment by type: Deposit Due, Progress, Final, Uniguest and Non-Project. Payments match their project by <b>Capital Approval Code</b> first (same hotel), then Hotel Code and Project. Cost is the full approved amount; Deposit is the deposit (0 means paid up front). <b>Add Change Order</b> raises the balance. A paid progress payment lowers it; the project reads Partially Paid until $0, then Paid in Full. <b>Final Payment Holds</b> keeps a final payment from being marked Paid until the vendor finishes closeout. <b>Budget vs Actual</b> compares approved, change orders, invoiced and paid (internal only).</p>'],
+    ['Full-page tools', '<p>Some menu items open as a full-page tool inside Web with its own buttons (for example Payments Due, Stage Board, Tickets and the system dashboards). Use <b>Back</b> to return, <b>Reload</b> to run it again, and <b>Open in new tab</b> for full size. Close buttons and Yes or No questions inside the tool work in Web.</p>'],
+    ['Page help on every screen', '<p>Press <b>?</b> in the top bar, or the <b>?</b> on any screen header: what the screen is for, where its data comes from, every part of the page, how-tos, what it changes behind the scenes, rules and gotchas, and related screens. <b>Tour this page</b> highlights each part (Escape stops it). <b>All pages</b> searches the help for every screen. <b>Web Guide</b> opens the full guide. Hover over a button, filter, column header or tile for a one-line explanation.</p>'],
+    ['Committee', '<p><b>Committee &gt; Weekly Glance</b>, <b>T53 Glance</b> and <b>Other Funds Glance</b> list the projects going to Capex Committee, filterable by fund, brand, source, category, vendor and priority. <b>Email me</b> sends the Blue Box Glance to you. <b>Prep Packet</b> builds the Brief and Likely Questions for Kyle. The Thursday Glance is queued as a Teams approval card for Matt Ham every Thursday morning; nothing sends until it is approved.</p>'],
+    ['Hotels, systems and vendors', '<p><b>Hotels</b>: the hotel panel (Systems and contacts, Project Updates, Brand QA), <b>Hotel Record</b> with Property Compliance, Technology Utilities, QA Failures and Network Handoffs. <b>Systems</b>: system dashboards, Equipment Removed, Warranty Claims and Refresh Plan. <b>Vendors</b>: Vendor Compliance (COI and W-9), Contract Renewals, Scorecard, Crew Load, <b>Vendor Levels</b> (PM, PM Director, Accounting, Company Admin, and Reset 2-step) and PM Workload.</p>'],
+    ['Reports, Reporting Hub and Insights', '<p><b>Reports &gt; Exec View</b> is the one-page view queued to Kyle every Monday 7 AM. <b>Reporting Hub</b> builds a report from any list or several combined: choose columns, filter, group, sort, export and save it to share with Kyle. <b>Insights</b> lists what needs attention (recurring issues, open issues, aging tickets, network and GRE problems, what is coming up), each with <b>Support context</b>: on-property support first, then the system vendor, then the brand.</p>'],
+    ['Loader Hub', '<p><b>Tools &gt; Loader Hub</b> runs every loader (email updates, GRE, Marriott tickets, network scans, the Hotel Activity Log). Press <b>Preview</b> first to see what would change, then <b>Apply</b>.</p>'],
+    ['Vendor Portal', '<p>The <b>Vendor Portal</b> button in the top bar (admins) opens the portal in a new browser tab with no second sign-in, where you can preview any vendor and level. Vendors see My Day, their projects and issues at their hotels, and only what each project\'s <b>Vendor can see</b> switch allows: never internal notes, Coupa links, money (except Hardy Group on ticked jobs) or other vendors.</p>'],
+    ['Admin', '<p>TechTrack Admins only: people and access (role and per-area hide, view or edit), Test Mode, Send Only To Me, automations on Save, notifications, the Teams webhook, dropdown lists, triggers (read only), the app log and cache clearing.</p>']
+  ];
+  function renderHelp() {
+    hideBar();
+    $('view').innerHTML = '<div class="hello" style="padding:12px 18px;"><b>Help and Training</b> <span style="color:var(--muted)">| how TechTrack Web works</span> <button class="btn small accent" style="float:right" onclick="ttTour(true)">Take the tour</button></div>' +
+      HELP.map(function (h, i) { return cardShell('hp:' + i, esc(h[0]), '', '', '<div class="help" style="padding:4px 16px 12px">' + h[1] + '</div>', i === 0); }).join('') +
+      cardShell('hp:deep', 'TechTrack Web Training (11 modules)', 'Hands-on, in Web', '<button class="btn small" onclick="event.stopPropagation();go(\'training\')">Open</button>',
+        '<div class="help" style="padding:4px 16px 12px"><p>Find your way around; filter, export and share; open and update a project; move projects through stages; Project Updates; money (deposits, payments and holds); Committee; hotels and systems; vendors and the Vendor Portal; tickets, tasks and the calendar; reports for others. Each module opens the screen and starts its page tour. Progress is kept in this browser.</p></div>', false);
+  }
+
+  /* ===================== GUIDED TOUR ===================== */
+  /* Guided tour, rebuilt Nov 12 2026 for the one side menu (Sheets Menu group removed).
+     Each stop: [selector, title, text, open]. open = 1 opens a collapsed menu group so its
+     items show. Stops whose screen item is not there for this person are skipped. */
+  var TOUR = [
+    ['#nav', 'One side menu', 'Every screen lives in this menu, grouped by job: Projects, Project Updates, Project Dashboards, Money, Committee, Hotels, Systems, Brands, Vendors, Tickets and Tasks, Alerts, Reports, Tools, Admin and Archive. Groups start closed; click a name to open one.'],
+    ['#navFind', 'Find in the menu', 'Type any screen, dashboard or tool name to jump straight to it.'],
+    ['.gsearch', 'Smart Search', 'Type a hotel and anything about it, for example ATLDN PBX issues, and press Enter. You get past issues, tickets and Project Updates for that hotel.'],
+    ['[data-v="myday"]', 'My Day', 'What is past its date, coming up, in approvals and needing payment, plus a Cleared to start card for jobs that just got their PO.'],
+    ['[data-v="insights"]', 'Insights', 'Everything TechTrack tracks, read for you, with Support context (on-property first) and Knowledge Base answers.'],
+    ['#nav [data-g="projects"] button[onclick*="showStageBoard"]', 'Stage Board', 'Every project in its stage: Scoping, Future Capex, Committee, Cleared for Takeoff, TPT, Payments Due and Archive. On Scoping, Future Capex and Committee tick rows and use Move selected to move up to 50 at once, with a preview before anything changes.', 1],
+    ['[data-g="projects"]', 'Projects', 'Every stage list, Add New Capex or Tech Project and Bulk Update, plus the vendor views: Backorders, Install Progress, Site Surveys, Stale Vendor Updates (no vendor update in 7+ days), Vendor Questions and Sequencing (jobs that wait on another trade at the same hotel; set Depends On in the project panel). Open a project to edit it, set PM Assigned, click Request invoice, and see the Closeout and On site blocks from the Vendor Portal.', 1],
+    ['[data-g="updates"]', 'Project Updates', 'Add one update or many, view them all, and send the daily update summary. Updates also load from emails at 9, 12 and 5 on weekdays.', 1],
+    ['[data-g="money"]', 'Money', 'Payments Due by type (Deposit, Progress, Final, Uniguest, Non-Project). Payments match projects by Capital Approval Code first. Add Change Order raises the balance, and a paid progress payment subtracts until the project is Paid in Full. Final Payment Holds lists final payments held until the vendor finishes closeout. Budget vs Actual compares approved, change orders, invoiced and paid for every project (internal only).', 1],
+    ['[data-g="committee"]', 'Committee', 'Weekly, T53 and Other Funds Glances, the Prep Packet for Kyle, and the Thursday Committee Glance card: it is queued as a Teams approval card for Matt Ham every Thursday morning.', 1],
+    ['[data-g="hotels"]', 'Hotels', 'Hotels, Hotel Detail View, Technology Utilities, QA Failures (from brand QA Fail emails), Network Handoffs from vendors, Hotel Blockers (what vendors need from a hotel, sent to the GM as an approval card) and Hotel Record: one page per hotel, including Property Compliance from Kyle\'s file.', 1],
+    ['[data-g="systems"]', 'Systems', 'System dashboards, plus Equipment Removed (old gear and disposal certificates for ITAD) and Warranty Claims you open from a device record, and Refresh Plan: what to replace and when.', 1],
+    ['[data-g="vendors"]', 'Vendors', 'Vendor Portal tools, Vendor Records, Vendor Compliance (COI and W-9), Contract Renewals (90-day flag), Scorecard, Crew Load (red when a vendor is booked over its crew size), Vendor Levels (PM, PM Director, Accounting, Company Admin, and 2-step resets) and PM Workload.', 1],
+    ['[data-g="tickets"]', 'Tickets and Tasks', 'Tickets, Tasks and the Technology Calendar (month, week and list, with every TechTrack and Vendor Portal date and hotel blackouts), plus Vendor Response: who owns each vendor issue, how long it has been open, and Confirm close or Reopen when the vendor marks it Resolved.', 1],
+    ['[data-g="reports"]', 'Reports', 'Exec View for Kyle (queued to him as an approval card every Monday 7 AM), snapshots and data checks.', 1],
+    ['[data-v="hub"]', 'Reporting Hub', 'Any list, or several combined, filtered, grouped and sorted, with Blue Box exports and saved reports shared with Kyle.'],
+    ['[data-g="adminx"]', 'Admin', 'Test Mode, notifications, Teams, dropdown lists, triggers and the app log.', 1],
+    ['#phTop', 'Page help', 'The ? button explains the page you are on: what it is for, where the data comes from, every button and column, step by step workflows, what it changes and the gotchas. Tour this page walks the screen. Every screen also has its own ? button, and buttons, filters and column headers show hover text.'],
+    ['[data-g="help"]', 'Help and Account', 'Help and Training, the Web Guide, Web Training, this tour and your password. Anything new that has no group yet shows under OTHER.', 1],
+    ['#fbar', 'The Works', 'Filters at every level, Expand and Collapse, Excel, PDF and Email as dashboard on every screen.']
+  ];
+  window.ttTour = function (force) {
+    try { if (!force && localStorage.getItem('tt2_tour_done_1113b')) return; } catch (e) { }
+    var i = 0, tip = null, hl = null, opened = null;
+    function shutOpened() { if (opened) { opened.classList.add('shut'); opened = null; } }
+    function end() { shutOpened(); if (tip) tip.remove(); if (hl) hl.classList.remove('tour-hl'); try { localStorage.setItem('tt2_tour_done_1113b', '1'); } catch (e) { } }
+    function step() {
+      shutOpened(); if (tip) tip.remove(); if (hl) hl.classList.remove('tour-hl');
+      while (i < TOUR.length && !(function (n) { if (!n) return false; if (TOUR[i][3]) return true; var r = n.getBoundingClientRect(); return r.width > 0 && r.height > 0; })(document.querySelector(TOUR[i][0]))) i++;
+      if (i >= TOUR.length) return end();
+      var s = TOUR[i]; hl = document.querySelector(s[0]); var og = s[3] ? (hl.classList.contains('nav-group') ? hl : hl.closest('.nav-group')) : null; if (og && og.classList.contains('shut')) { og.classList.remove('shut'); opened = og; } hl.classList.add('tour-hl'); if (hl.scrollIntoView) hl.scrollIntoView({ block: 'nearest' });
+      var r = hl.getBoundingClientRect();
+      tip = document.createElement('div'); tip.className = 'tour-tip';
+      tip.innerHTML = '<h4>' + esc(s[1]) + ' <span style="color:var(--muted);font-weight:normal;font-size:12px">' + (i + 1) + ' of ' + TOUR.length + '</span></h4><div>' + esc(s[2]) + '</div><div class="tf"><button class="btn small">Skip</button><button class="btn small primary">' + (i === TOUR.length - 1 ? 'Done' : 'Next') + '</button></div>';
+      document.body.appendChild(tip);
+      var left = r.right + 14, top = r.top;
+      if (left + 370 > window.innerWidth) { left = Math.max(10, r.left); top = r.bottom + 10; }
+      if (top + tip.offsetHeight > window.innerHeight) top = Math.max(10, window.innerHeight - tip.offsetHeight - 10);
+      tip.style.left = left + 'px'; tip.style.top = Math.max(10, top) + 'px';
+      var b = tip.querySelectorAll('button'); b[0].onclick = end; b[1].onclick = function () { i++; step(); };
+    }
+    step();
+  };
+  // First run: start the tour once the nav is drawn.
+  var tw = setInterval(function () { if (S.boot && document.querySelector('#nav .nav-group')) { clearInterval(tw); setTimeout(function () { ttTour(false); }, 800); } }, 500);
+  setTimeout(function () { clearInterval(tw); }, 60000);
+
+  /* ===================== BACKGROUND PRELOAD (Chris, Nov 1 2026) =====================
+     After My Day shows, every screen's data loads quietly, one item at a time.
+     Anything you click goes first: the preload waits while one of your requests is running.
+     If you open a screen that is mid-preload, the app joins that same request (no double load). */
+  var baseGs = window.gs, inflight = {}, userBusy = 0, lastUser = 0;
+  var SHARE = { ttGetTables: 1, ttGetReport: 1, ttCommittee: 1, ttHubData: 1, ttHubSources: 1, ttHubSaved: 1, ttInsights: 1, ttAdminGet: 1, ttMenu: 1 };
+  function callKey(fn, args) {
+    if (!SHARE[fn]) return '';
+    var a = args.slice(1); // drop the token
+    if (fn === 'ttGetTables' && a[1] === true) return ''; // Refresh always reads live
+    if (fn === 'ttHubData' && a[1] === true) return '';
+    return fn + '|' + JSON.stringify(a);
+  }
+  function wrappedGs(isPre, fn, args) {
+    var key = callKey(fn, args);
+    if (key && inflight[key]) { if (!isPre) inflight[key].user = true; return inflight[key].p; }
+    if (!isPre) { userBusy++; lastUser = Date.now(); }
+    var p = baseGs.apply(null, [fn].concat(args));
+    var done = function () { if (!isPre) { userBusy--; lastUser = Date.now(); } if (key) delete inflight[key]; };
+    p.then(done, done);
+    if (key) inflight[key] = { p: p, user: !isPre };
+    return p;
+  }
+  window.gs = function (fn) { return wrappedGs(false, fn, Array.prototype.slice.call(arguments, 1)); };
+  function pre(fn) { return wrappedGs(true, fn, Array.prototype.slice.call(arguments, 1)); }
+
+  var preStarted = false;
+  window.ttPrefetch = function () {
+    if (preStarted || !S.boot) return; preStarted = true;
+    var q = [];
+    var tables = (S.boot.tables || []).map(function (t) { return t.sheet; });
+    var first = ['Future Capex', 'Capex Committee', 'Secured Quotes', 'Overdue Payments', 'Archived Capex'];
+    var order = first.filter(function (t) { return tables.indexOf(t) !== -1; }).concat(tables.filter(function (t) { return first.indexOf(t) === -1; }));
+    function addTable(sh) { q.push(function () { if (S.tables[sh]) return null; return pre('ttGetTables', S.token, [sh], false).then(function (x) { if (!S.tables[sh] && x && x[sh]) S.tables[sh] = x[sh]; }); }); }
+    order.slice(0, 5).forEach(addTable);
+    (S.boot.reports || []).forEach(function (r) { q.push(function () { if (S.reports[r.name]) return null; return pre('ttGetReport', S.token, r.name, false).then(function (x) { if (!S.reports[r.name]) S.reports[r.name] = x; }); }); });
+    ['weekly', 'T53', 'OTHER'].forEach(function (m) { q.push(function () { if (S.plus.com[m]) return null; return pre('ttCommittee', S.token, m).then(function (d) { if (!S.plus.com[m]) S.plus.com[m] = d; }); }); });
+    q.push(function () { if (S.plus.ins) return null; return pre('ttInsights', S.token).then(function (d) { if (!S.plus.ins) S.plus.ins = d; }); });
+    q.push(function () { if (S.plus.hub.sources) return null; return Promise.all([pre('ttHubSources', S.token), pre('ttHubSaved', S.token)]).then(function (x) { if (!S.plus.hub.sources) { S.plus.hub.sources = x[0]; S.plus.hub.saved = x[1]; } }); });
+    q.push(function () { if (S.plus.admin) return null; return pre('ttAdminGet', S.token).then(function (a) { if (!S.plus.admin) S.plus.admin = a; }); });
+    order.slice(5).forEach(addTable);
+    var i = 0;
+    (function next() {
+      if (i >= q.length || !S.token) return;
+      // Wait while you are using the app: your request runs alone, then a short pause.
+      if (userBusy > 0 || Date.now() - lastUser < 700) return setTimeout(next, 400);
+      var job = q[i++], p = null;
+      try { p = job(); } catch (e) { p = null; }
+      (p || Promise.resolve()).then(function () { setTimeout(next, 150); }, function () { setTimeout(next, 150); });
+    })();
+  };
+
+  // Checklist pop-ups caught during Save automations open the Checklist tab.
+  window.openChecklistFor = function () { if (S.drawer && S.drawer.mode !== 'new' && typeof dTab === 'function') { try { dTab('checklist'); toast('Completion checklist is ready'); } catch (e) { } } };
+})();
+</script>

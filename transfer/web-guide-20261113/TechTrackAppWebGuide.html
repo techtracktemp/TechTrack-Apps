@@ -1,0 +1,255 @@
+<!-- C.Perry -->
+<!-- TechTrack Web Guide and TechTrack Web Training (Nov 13 2026).
+     Both are written for the Web app: the left menu, screens, buttons, the project panel and Save.
+     The Guide is built from the page help (loaded on first open, then cached) in the order of the
+     left menu the person actually sees. Training is a set of hands-on modules that open each screen.
+     Views: 'guide' and 'training'. Nothing here loads until one of them is opened. -->
+<style>
+  .wg-head { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .wg-head .ttl { font-size: 18px; font-weight: bold; margin-right: auto; }
+  .wg-head input { padding: 5px 8px; border: 1px solid var(--line, #ccc); border-radius: 6px; min-width: 220px; }
+  .wg-body { padding: 4px 16px 14px; line-height: 1.5; }
+  .wg-body h4 { margin: 14px 0 4px; font-size: 14px; }
+  .wg-body h4:first-child { margin-top: 6px; }
+  .wg-where { color: var(--muted, #666); font-size: 12px; margin-bottom: 4px; }
+  .wg-body ol, .wg-body ul { margin: 4px 0 8px 20px; padding: 0; }
+  .wg-item { border-top: 1px solid var(--line, #ddd); padding: 6px 0 8px; }
+  .wg-item:first-child { border-top: 0; }
+  .wg-acts { margin-top: 4px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .wg-hide { display: none !important; }
+  .wg-mod .done { color: #00915A; font-weight: bold; }
+  .wg-prog { height: 8px; background: var(--line, #ddd); border-radius: 4px; overflow: hidden; min-width: 160px; }
+  .wg-prog > div { height: 100%; background: #00915A; }
+  .wg-note { background: rgba(46, 117, 182, .08); border-left: 3px solid #2E75B6; padding: 6px 10px; margin: 6px 0; }
+</style>
+<script>
+(function () {
+  function e(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function hideWorks() { var b = $('fbar'); if (b) { b.innerHTML = ''; b.style.display = 'none'; } }
+  function openKey(k) {
+    if (!k) return;
+    if (k.indexOf('m:') === 0) { if (window.ttRunTool) ttRunTool(k.slice(2), [], [], k.slice(2)); return; }
+    go(k);
+  }
+  window.ttWgOpen = function (k, tour) {
+    openKey(k);
+    if (tour && window.ttPhTour) setTimeout(function () { try { ttPhTour(); } catch (x) { } }, 1600);
+  };
+  window.ttWgHelp = function (k) { if (window.ttPageHelp) { if (window.ttPhShow && window.ttPhLoad) ttPhLoad().then(function () { ttPhShow(k); }); else ttPageHelp(); } };
+
+  /* ===================== GETTING STARTED (written for Web) ===================== */
+  var START = [
+    ['Signing in and the top bar', '<p>Open TechTrack Web from its link and sign in with your email and TechTrack password. The first time, you set your own password from the temporary one you were given. Change it any time from <b>Help and Account &gt; My password</b> in the left menu.</p>' +
+      '<p>The bar across the top has, from left to right: the <b>Smart Search</b> box (type a hotel code and a topic, for example <i>ATLDN PBX issues</i>, and press Enter), the <b>?</b> page help button, the <b>Vendor Portal</b> button (admins only; opens the portal in a new browser tab without a second sign-in), and the <b>bell</b> (count of projects past their date plus projects in approvals; click it to go to My Day).</p>'],
+    ['The left menu', '<p>Every screen is in the left menu, grouped by the job you are doing: My Day, Company Summary, Insights and Reporting Hub at the top, then <b>Projects, Project Updates, Project Dashboards, Money, Committee, Hotels, Systems, Brands, Vendors, Tickets and Tasks, Alerts and Renewals, Reports, Tools, Admin and Archive</b>, and <b>Help and Account</b> at the bottom.</p>' +
+      '<p>Groups start closed. Click a group name to open it; the number beside it is how many screens it holds for your login. Type in <b>Find in the menu</b> at the top to filter every group at once and jump straight to a screen. You only see the screens your login has access to.</p>' +
+      '<p>On a phone or narrow window the menu folds away; the menu button at the top left opens it.</p>'],
+    ['Lists, cards and The Works bar', '<p>Most screens show cards that start closed. Click a card header to open it; Expand all and Collapse all open or close every card on the screen. Nothing is remembered between visits, so every screen opens tidy.</p>' +
+      '<p>The bar under the top bar is <b>The Works</b>. Filters (Brand, Fund, RVP, Hotel, Status, Payment Status, Vendor, Category) narrow everything on the screen at once and only offer values that are on the screen. <b>Search</b> filters as you type. Each active filter shows as a chip under the bar: click a chip to drop that filter, or <b>Clear all</b>.</p>' +
+      '<p>On the right of the bar: <b>Refresh</b> (reads the data again now instead of from the 5 minute cache), <b>Expand all</b>, <b>Collapse all</b>, <b>Export Excel</b> (a Blue Box workbook of exactly what the filters show), <b>Print / PDF</b> (the Blue Box print view; pick Save as PDF in the print box) and <b>Email as dashboard</b> (sends what is filtered as a Blue Box email). Newer screens put these in their own header row with the same names.</p>'],
+    ['Opening and editing a project', '<p>Click any project anywhere (a list, a card, the calendar, a search result) to open the <b>project panel</b> on the right. The header shows the project, hotel, status and payment pills, cost, Coupa links (PO, requisition, invoice; each opens Coupa in a new browser tab) and the PM line.</p>' +
+      '<p>The panel has tabs: <b>Details</b> (every field, grouped; dropdown fields use the TechTrack lists), <b>Project Updates</b> (the timeline, newest first, with Add update), <b>Vendor invoices</b> (when the vendor has sent any in the portal), <b>Checklist</b> (the completion checklist) and <b>Vendor Portal</b> (closeout, on-site and compliance information, when there is any).</p>' +
+      '<p>Change what you need, then press <b>Save</b> at the bottom of the panel (or Ctrl+S). The save bar counts your unsaved changes; <b>Discard</b> throws them away. Only the fields you changed are written. After Save, TechTrack runs its automations in the background: archive on Complete, End Date stamps, moves between stages, Teams posts and notifications. Closing the panel with unsaved changes asks first. The double arrow widens the panel.</p>' +
+      '<div class="wg-note">Calculated fields are locked in the panel. If Save says some changes were skipped, someone else changed those fields after you opened the panel; press Refresh and redo them.</div>'],
+    ['Project stages', '<p>Every project is in one stage: <b>Scoping &gt; Future Capex &gt; Committee &gt; Cleared for Takeoff (Capex) &gt; Tech Projects &gt; Payments Due &gt; Archive</b>. Projects move when their status changes. <b>Projects &gt; Stage Board</b> shows all seven with counts and dollars. On Scoping, Future Capex and Committee you can tick projects, choose <b>Move selected to</b>, read the preview and press Confirm (up to 50 at a time).</p>' +
+      '<p>A project leaves Cleared for Takeoff when it has a PO number and a vendor date. A deposit marked Paid releases it to Tech Projects. Complete on a Tech Project archives it once nothing is owed.</p>'],
+    ['Help on every screen', '<p>Press <b>?</b> in the top bar, or the small <b>?</b> on any screen header, for that screen\'s help: what it is for, where its data comes from, every part of the page, step by step how-tos, what it changes behind the scenes, rules and gotchas, and related screens. <b>Tour this page</b> highlights each part of the screen in turn (Escape stops it). <b>All pages</b> searches the help for every screen. Hover over a button, filter, column header or tile for a one-line explanation.</p>' +
+      '<p>This guide is the same help, in menu order, in one place. <b>Help and Account &gt; Take the tour</b> walks the left menu.</p>'],
+    ['Full-page tools', '<p>Some menu items open as a full-page tool inside Web with its own buttons (for example Payments Due, Stage Board, Tickets and the system dashboards). A bar above it has <b>Back</b> (return to where you were), <b>Reload</b> (run it again after a change) and <b>Open in new tab</b> (full size in its own browser tab). Close buttons inside the tool bring you back. Hover text does not reach inside these tools; the <b>?</b> covers them.</p>'],
+    ['Who sees what', '<p>Each person has a role (Admin, Editor or Viewer) and per-area access set in <b>Admin</b>. An area can be hidden, view only or editable. A list marked <b>view only</b> can be read and exported but not saved. Exports can be turned off for a person. The Admin group and the Vendor Portal button show only for TechTrack Admins.</p>' +
+      '<p>Vendors never use TechTrack Web. They work in the Vendor Portal and only see what the <b>Vendor can see</b> switch on each project allows: never internal notes, money (except Hardy Group on ticked jobs) or other vendors.</p>']
+  ];
+
+  /* ===================== TRAINING MODULES (hands-on, in Web) ===================== */
+  var MODS = [
+    ['Find your way around', 'myday', [
+      'Open My Day from the top of the left menu. Read the tiles: Open projects, Past their date, In Approvals, Scheduled next 7 days, Need to Pay.',
+      'Click a group name (Projects) to open it, then type "budget" in Find in the menu and click Budget vs Actual.',
+      'Type a hotel code and a topic in Smart Search (for example a code plus "Wi-Fi") and press Enter.',
+      'Press ? in the top bar and read the help for the screen you are on. Press Tour this page.'],
+      'You can reach any screen from Find in the menu, and ? explains the screen you are on.'],
+    ['Filter, export and share', 'table:Capex', [
+      'Open Projects > Capex.',
+      'Pick a Fund in The Works bar, then a Brand. Watch the chips appear under the bar.',
+      'Press Expand all, then Collapse all.',
+      'Press Export Excel and open the workbook: the Executive Summary is first and only your filtered projects are in it.',
+      'Press Print / PDF and choose Save as PDF. Then click Clear all.'],
+      'Every export (Excel, PDF, Email as dashboard) uses exactly what the filters show.'],
+    ['Open and update a project', 'table:Tech Projects Tracker', [
+      'Open Projects > Tech Projects and click any project to open the panel.',
+      'On Details, change Start Date. The save bar shows "1 change". Press Discard.',
+      'Click the Project Updates tab and read the timeline. Add update posts a new one.',
+      'Click the Checklist tab, then the Vendor Portal tab if the job has one.',
+      'Use the Coupa links in the header to open the PO or requisition in Coupa.'],
+      'Nothing is saved until you press Save (or Ctrl+S); automations run after Save.'],
+    ['Move projects through stages', 'm:showStageBoard', [
+      'Open Projects > Stage Board and read the seven stages with counts and dollars.',
+      'Open Scoping. Tick two projects (or Select all shown).',
+      'Choose Move selected to > Future Capex and read the yellow preview. Cancel if you are only practicing.',
+      'Open Future Capex and find the Take and Hold choices used in the Wednesday review.'],
+      'Bulk moves are limited to 50 projects and always show a preview before anything changes.'],
+    ['Project Updates', 'm:showProjectUpdatesReport', [
+      'Open Project Updates > View Project Updates and filter to one hotel.',
+      'Open Project Updates > Add Project Update, pick a project and write a short update.',
+      'Know that updates also load from emails at 9 AM, 12 PM and 5 PM on weekdays, and that the daily summary is sent from Send Today\'s Update Summary.'],
+      'Every update shows on the project\'s Project Updates tab and in the weekly reports.'],
+    ['Money: deposits, payments and holds', 'm:showPaymentsDue', [
+      'Open Money > Payments Due. Read the sections by type: Deposit Due, Progress, Final, Uniguest, Non-Project.',
+      'Open one payment and find its Capital Approval Code; payments match their project by that code first.',
+      'Find Add Change Order and read what it does to the balance (it raises it; a credit lowers it).',
+      'Open Money > Final Payment Holds: a final payment cannot be marked Paid until the vendor finishes closeout.',
+      'Open Money > Budget vs Actual and sort by Variance.'],
+      'A paid progress payment lowers the balance; the project reads Partially Paid until it reaches $0.'],
+    ['Committee', 'committee:weekly', [
+      'Open Committee > Weekly Glance and filter to one fund.',
+      'Open T53 Glance and Other Funds Glance.',
+      'Open Committee > Prep Packet: the Brief and Likely Questions go to Kyle.',
+      'Know that the Thursday Glance is queued as a Teams approval card for Matt Ham every Thursday; nothing sends until it is approved.'],
+      'Check deposit and approval code on every line before Thursday.'],
+    ['Hotels and systems', 'hotels', [
+      'Open Hotels > Hotels and click a hotel to open the hotel panel (Systems and contacts, Project Updates, Brand QA).',
+      'Open Hotels > Hotel Record for the same hotel and read Property Compliance (Estimate, Vendor confirmed, Needs capex).',
+      'Open Hotels > Technology Utilities and find the hotel\'s ISP and TV vendors.',
+      'Open Systems > Refresh Plan to see what is due for replacement and when.'],
+      'Troubleshoot with on-property support first, then the system vendor, and only then the brand.'],
+    ['Vendors and the Vendor Portal', 'r2:levels', [
+      'Open Vendors > Vendor Levels. Filter to one vendor and read each login\'s level: PM, PM Director, Accounting or Company Admin.',
+      'Open Vendors > PM Workload: open jobs, stale jobs and blockers per vendor PM.',
+      'Open Vendors > Scorecard and Crew Load.',
+      'Open Vendors > Vendor Compliance to see COI and W-9 expiry.',
+      'Press the Vendor Portal button in the top bar to see the portal as an admin.'],
+      'Setting a level is logged with your name; Reset 2-step is for a vendor who lost their phone.'],
+    ['Tickets, tasks and the calendar', 'r4:cal', [
+      'Open Tickets and Tasks > Technology Calendar. Switch between Month, Week and List; Today jumps back.',
+      'Click an item to open its project or ticket. Hotel blackout dates show in red.',
+      'Download calendar (.ics) saves the filtered items for Outlook.',
+      'Open Tickets and Tasks > Tickets and Add Ticket.'],
+      'The calendar reads TechTrack and Vendor Portal dates together, so a date change shows here after Refresh.'],
+    ['Reports for others', 'r3:exec', [
+      'Open Reports > Exec View: the one-page view that is queued to Kyle as an approval card every Monday 7 AM.',
+      'Open Reporting Hub at the top of the menu. Pick a source, choose columns, filter, group and sort, then Save the report.',
+      'Open Insights and press Support context on any item.'],
+      'Blue Box exports always put the Executive Summary first and end with the Prepared by line.']
+  ];
+  var PKEY = 'tt2_webtraining_done';
+  function progress() { try { return JSON.parse(localStorage.getItem(PKEY) || '{}'); } catch (x) { return {}; } }
+  window.ttWgDone = function (i, on) { var p = progress(); if (on) p[i] = 1; else delete p[i]; try { localStorage.setItem(PKEY, JSON.stringify(p)); } catch (x) { } renderTraining(); };
+
+  function renderTraining() {
+    hideWorks();
+    var p = progress(), n = Object.keys(p).length;
+    var head = '<div class="hello wg-head" style="padding:12px 18px;"><span class="ttl">TechTrack Web Training</span>' +
+      '<span>' + n + ' of ' + MODS.length + ' done</span><div class="wg-prog"><div style="width:' + Math.round(100 * n / MODS.length) + '%"></div></div>' +
+      '<button class="btn small" onclick="expandAll(true)">Expand all</button><button class="btn small" onclick="expandAll(false)">Collapse all</button>' +
+      '<button class="btn small" onclick="go(\'guide\')">Web Guide</button></div>' +
+      '<div class="wg-body" style="padding:4px 18px 10px;color:var(--muted)">Work through the modules in order. Go there opens the screen and starts its page tour. Tick Done when you have tried every step. Progress is kept in this browser.</div>';
+    var body = MODS.map(function (m, i) {
+      var done = !!p[i];
+      var right = '<button class="btn small primary" onclick="event.stopPropagation();ttWgOpen(\'' + e(m[1]) + '\',true)">Go there</button>' +
+        '<label style="margin-left:8px;cursor:pointer" onclick="event.stopPropagation()"><input type="checkbox"' + (done ? ' checked' : '') + ' onchange="ttWgDone(' + i + ',this.checked)"> Done</label>';
+      return cardShell('wt:' + i, 'Module ' + (i + 1) + ': ' + e(m[0]), done ? '<span class="done">Done</span>' : '', right,
+        '<div class="wg-body wg-mod"><h4>Try it</h4><ol>' + m[2].map(function (s) { return '<li>' + e(s) + '</li>'; }).join('') + '</ol><h4>Remember</h4><div>' + e(m[3]) + '</div></div>', false);
+    }).join('');
+    $('view').innerHTML = head + body;
+  }
+
+  /* ===================== GUIDE ===================== */
+  function navGroups() {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll('#nav .nav-top, #nav .nav-group'), function (g) {
+      var title = g.classList.contains('nav-top') ? 'TOP OF THE MENU' : String((g.querySelector('.gh') || {}).textContent || '').replace(/\s*\d+\s*$/, '').trim();
+      var items = [];
+      Array.prototype.forEach.call(g.querySelectorAll('.nav-item'), function (b) {
+        var label = String(b.textContent || '').trim(), k = b.getAttribute('data-v'), oc = b.getAttribute('onclick') || '';
+        if (!k) { var m = oc.match(/ttMenuClick\('([^']+)'/); if (m) k = 'm:' + m[1]; }
+        if (!k && /ttTour/.test(oc)) k = '#tour';
+        if (!k && /ttMyPassword/.test(oc)) k = '#password';
+        if (k && label) items.push([k, label]);
+      });
+      if (items.length && g.getAttribute('data-g') !== 'help') out.push([title, items]);
+    });
+    return out;
+  }
+  function itemHtml(D, k, label, group) {
+    var x = D[k];
+    if (!x && k.indexOf('table:') === 0) x = D['table'];
+    if (!x && k.indexOf('report:') === 0) x = D['report'];
+    if (!x && k.indexOf('committee:') === 0) x = D['committee'];
+    if (!x && k.indexOf('m:') === 0) x = { p: (D['tool'] || {}).p };
+    x = x || {};
+    var h = '<div class="wg-item" data-txt="' + e((label + ' ' + (x.p || '') + ' ' + JSON.stringify(x.w || '') + ' ' + JSON.stringify(x.r || '')).toLowerCase()) + '">' +
+      '<h4>' + e(label) + '</h4><div class="wg-where">Left menu: ' + e(group === 'TOP OF THE MENU' ? 'top of the menu' : group.charAt(0) + group.slice(1).toLowerCase()) + ' &gt; ' + e(label) + '</div>';
+    if (x.p) h += '<div>' + e(x.p) + '</div>';
+    (x.w || []).slice(0, 3).forEach(function (w) { h += '<div style="margin-top:6px"><b>' + e(w[0]) + '</b><ol>' + w[1].map(function (s) { return '<li>' + e(s) + '</li>'; }).join('') + '</ol></div>'; });
+    var r = (x.r || []).concat(x.r2 ? [x.r2] : []);
+    if (r.length) h += '<div><b>Watch for</b><ul>' + r.slice(0, 4).map(function (s) { return '<li>' + e(s) + '</li>'; }).join('') + '</ul></div>';
+    h += '<div class="wg-acts"><button class="btn small" onclick="ttWgOpen(\'' + e(k).replace(/'/g, '') + '\')">Open this screen</button>' +
+      (D[k] ? '<button class="btn small" onclick="ttWgOpen(\'' + e(k).replace(/'/g, '') + '\');setTimeout(function(){ttPageHelp()},1200)">Full help for this screen</button>' : '') + '</div></div>';
+    return h;
+  }
+  var G = { data: null };
+  function renderGuide() {
+    hideWorks();
+    var v = $('view');
+    if (!G.data) {
+      v.innerHTML = '<div class="hello" style="padding:12px 18px;"><b>TechTrack Web Guide</b> <span style="color:var(--muted)">loading...</span></div>';
+      (window.ttPhLoad ? ttPhLoad() : Promise.reject(new Error('Page help is not available.'))).then(function (d) { G.data = d; if (S.view === 'guide') renderGuide(); })
+        .catch(function (x) { v.innerHTML = '<div class="conf">' + e(x.message) + '</div>'; });
+      return;
+    }
+    var D = G.data;
+    var head = '<div class="hello wg-head" style="padding:12px 18px;"><span class="ttl">TechTrack Web Guide</span>' +
+      '<input id="wgFind" placeholder="Search the guide" oninput="ttWgFind(this.value)" autocomplete="off">' +
+      '<button class="btn small" onclick="expandAll(true)">Expand all</button><button class="btn small" onclick="expandAll(false)">Collapse all</button>' +
+      '<button class="btn small" onclick="ttWgPrint()">Print / PDF</button><button class="btn small" onclick="ttTour(true)">Take the menu tour</button>' +
+      '<button class="btn small primary" onclick="go(\'training\')">Web Training</button></div>' +
+      '<div class="wg-body" style="padding:4px 18px 10px;color:var(--muted)">How to use TechTrack Web, then every screen in the order of your left menu. Search opens the sections that match.</div>';
+    var start = START.map(function (s, i) { return cardShell('wgs:' + i, e(s[0]), 'Getting started', '', '<div class="wg-body" data-txt="' + e((s[0] + ' ' + s[1].replace(/<[^>]+>/g, ' ')).toLowerCase()) + '">' + s[1] + '</div>', false); }).join('');
+    var groups = navGroups().map(function (g, i) {
+      var name = g[0] === 'TOP OF THE MENU' ? 'Top of the menu' : g[0].charAt(0) + g[0].slice(1).toLowerCase();
+      return cardShell('wgg:' + i, e(name), g[1].length + ' screens', '', '<div class="wg-body">' + g[1].filter(function (x) { return x[0].charAt(0) !== '#'; }).map(function (x) { return itemHtml(D, x[0], x[1], g[0]); }).join('') + '</div>', false);
+    }).join('');
+    v.innerHTML = head + start + groups;
+  }
+  window.ttWgFind = function (q) {
+    q = String(q || '').toLowerCase().trim();
+    Array.prototype.forEach.call(document.querySelectorAll('#view .card'), function (c) {
+      var hits = 0;
+      Array.prototype.forEach.call(c.querySelectorAll('[data-txt]'), function (x) { var ok = !q || x.getAttribute('data-txt').indexOf(q) >= 0 || String(c.querySelector('.tt').textContent).toLowerCase().indexOf(q) >= 0; x.classList.toggle('wg-hide', !ok); if (ok) hits++; });
+      c.classList.toggle('wg-hide', !!q && !hits);
+      if (q && hits) { c.classList.remove('shut'); var tw = c.querySelector('.tw'); if (tw) tw.innerHTML = '&#9660;'; }
+    });
+  };
+  window.ttWgPrint = function () {
+    var D = G.data || {};
+    var css = 'body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#222;margin:24px}h1{background:#1F3864;color:#fff;padding:10px 14px;font-size:18pt;margin:0 0 10px}h2{color:#1F3864;border-bottom:2px solid #1F3864;font-size:14pt;margin:18px 0 6px;page-break-after:avoid}h3{font-size:12pt;margin:12px 0 2px;page-break-after:avoid}.w{color:#666;font-size:9.5pt}.sum{background:#EEF3FA;border-left:4px solid #1F3864;padding:8px 12px}ol,ul{margin:3px 0 6px 20px;padding:0}.ft{margin-top:24px;border-top:1px solid #999;padding-top:6px;font-size:9pt;color:#555}';
+    var h = '<h1>TechTrack Web Guide</h1><div class="sum"><b>Executive Summary</b><br>How to use TechTrack Web: the top bar, the left menu, The Works bar, the project panel and Save, project stages, page help, full-page tools and access. Then every screen in left menu order with what it is for, how to use it and what to watch for. Printed ' + new Date().toLocaleDateString('en-US') + '.</div>';
+    h += '<h2>Getting started</h2>' + START.map(function (s) { return '<h3>' + e(s[0]) + '</h3>' + s[1]; }).join('');
+    navGroups().forEach(function (g) {
+      h += '<h2>' + e(g[0] === 'TOP OF THE MENU' ? 'Top of the menu' : g[0].charAt(0) + g[0].slice(1).toLowerCase()) + '</h2>';
+      g[1].forEach(function (x) { if (x[0].charAt(0) === '#') return; var d = document.createElement('div'); d.innerHTML = itemHtml(D, x[0], x[1], g[0]); var a = d.querySelector('.wg-acts'); if (a) a.remove(); h += d.innerHTML.replace(/<h4>/g, '<h3>').replace(/<\/h4>/g, '</h3>').replace(/class="wg-where"/g, 'class="w"'); });
+    });
+    h += '<div class="ft">Prepared by: Chris Perry using TechTrack</div>';
+    var w = window.open('', '_blank'); if (!w) return toast('Allow pop-ups to print the guide.', true);
+    w.document.write('<!DOCTYPE html><html><head><meta charset="utf-8"><title>TechTrack Web Guide</title><style>' + css + '</style></head><body>' + h + '</body></html>');
+    w.document.close(); setTimeout(function () { try { w.focus(); w.print(); } catch (x) { } }, 400);
+  };
+
+  /* ===================== hook the views in ===================== */
+  function hook() {
+    var prev = window.render;
+    if (!prev || prev._wg) return;
+    var r = function () {
+      if (S.view === 'guide') { markNav(); return renderGuide(); }
+      if (S.view === 'training') { markNav(); return renderTraining(); }
+      return prev.apply(this, arguments);
+    };
+    r._wg = true; window.render = r;
+    // The menu's TechTrack Training item and the page help's Full Guide button open the Web versions.
+    var mc = window.ttMenuClick;
+    if (mc && !mc._wg) { var m2 = function (fn) { if (fn === 'showTechTrackTraining') return go('training'); if (fn === 'showTechTrackGuide') return go('guide'); return mc.apply(this, arguments); }; m2._wg = true; window.ttMenuClick = m2; }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', hook); else hook();
+  setTimeout(hook, 0);
+})();
+</script>

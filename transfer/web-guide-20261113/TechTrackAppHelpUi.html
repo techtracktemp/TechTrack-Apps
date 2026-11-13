@@ -1,0 +1,261 @@
+<!-- Chris Perry -->
+<!--
+  TECHTRACK WEB, PAGE HELP (Nov 13 2026). Included last in TechTrackApp.html.
+  Chris: a "?" on every page that explains what the page is for and how to work it, hover text on
+  buttons, filters and column headers, and a tour of the current page. In depth, plain, no fluff.
+    "?" button       top bar (always) and on each screen's header. Opens a side panel (modeless, sections
+                     expand and collapse): purpose, where the data comes from, every part of the page,
+                     step-by-step workflows, what it changes behind the scenes, rules and gotchas, related pages.
+                     On framework screens the panel also lists this screen's live columns and filters.
+    Tour this page   highlights each part of the open screen with a short explanation.
+    All pages        every page's help, searchable, grouped by menu group.
+    Hover text       title tips on buttons, filters, column headers, tiles and menu items.
+  Speed: nothing loads with the app. The help text (TechTrackPageHelpData) loads on the first "?" click and is
+  kept in this browser until the next deploy. The hover text (TechTrackPageHelpTips, about 30 KB) loads in the
+  background a few seconds after the app is idle. Server: TechTrackPageHelp.gs. Nothing here writes or sends.
+-->
+<style>
+  #phTop { font-weight: bold; min-width: 30px; }
+  .ph-q { font-weight: bold; min-width: 28px; }
+  #phPanel { position: fixed; top: 64px; right: 12px; bottom: 12px; width: 480px; max-width: calc(100vw - 24px); z-index: 80; background: var(--panel, #fff); border: 1px solid var(--line, #ccc); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.35); display: none; flex-direction: column; }
+  #phPanel.open { display: flex; }
+  #phPanel.wide { width: 760px; }
+  #phPanel .phh { padding: 12px 14px 8px; border-bottom: 1px solid var(--line, #ccc); }
+  #phPanel .phh h3 { margin: 0; font-size: 18px; }
+  #phPanel .phh .sub { color: var(--muted, #666); font-size: 12px; margin-top: 2px; }
+  #phPanel .pha { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  #phPanel .phb { overflow: auto; padding: 8px 14px 14px; font-size: 14px; line-height: 1.45; }
+  #phPanel details { border: 1px solid var(--line, #ccc); border-radius: 8px; margin: 8px 0; }
+  #phPanel summary { cursor: pointer; padding: 7px 10px; font-weight: bold; }
+  #phPanel details > div { padding: 0 12px 10px; }
+  #phPanel dl { margin: 0; } #phPanel dt { font-weight: bold; margin-top: 8px; } #phPanel dd { margin: 2px 0 0 0; }
+  #phPanel ol, #phPanel ul { margin: 4px 0 4px 20px; padding: 0; } #phPanel li { margin: 3px 0; }
+  #phPanel .phw { margin-top: 8px; } #phPanel .phw b { display: block; }
+  #phPanel .phl a { display: inline-block; margin: 3px 10px 3px 0; }
+  #phPanel .phidx input { width: 100%; margin: 6px 0; }
+  #phPanel .phg { margin-top: 10px; font-weight: bold; color: var(--muted, #666); font-size: 12px; text-transform: uppercase; }
+  #phPanel .phi { display: block; padding: 3px 0; }
+  #phPanel .phcols td { padding: 3px 6px; border-top: 1px solid var(--line, #ccc); vertical-align: top; }
+  #phPanel .phcols td:first-child { font-weight: bold; white-space: nowrap; }
+  @media (max-width: 760px) { #phPanel, #phPanel.wide { top: 56px; right: 6px; left: 6px; width: auto; } }
+</style>
+<script>
+(function () {
+  var HP = { data: null, tips: null, asking: null, key: '', mode: 'page' };
+  var VER = 'tt2_ph_20261113c';
+
+  /* ---------- which help page is open ---------- */
+  function curKey() {
+    var v = String(S.view || 'myday');
+    if (v === 'tool' && S.plus && S.plus.tool) return 'm:' + S.plus.tool.fn;
+    return v;
+  }
+  function entryFor(k) {
+    var D = HP.data || {};
+    if (D[k]) return [k, D[k]];
+    if (k.indexOf('table:') === 0) return ['table', D.table];
+    if (k.indexOf('report:') === 0) return ['report', D.report];
+    if (k.indexOf('committee:') === 0) return ['committee', D.committee];
+    if (k.indexOf('m:') === 0) return ['tool', D.tool];
+    if (k.indexOf('vd:') === 0) return ['vendors:accounts', D['vendors:accounts']];
+    return [k, null];
+  }
+
+  /* ---------- load (only on first click; kept until the next deploy) ---------- */
+  function load() {
+    if (HP.data) return Promise.resolve(HP.data);
+    try { var c = localStorage.getItem(VER); if (c) { HP.data = JSON.parse(c); return Promise.resolve(HP.data); } } catch (e) { }
+    if (!HP.asking) HP.asking = gs('ttPageHelp', S.token).then(function (s) {
+      HP.data = JSON.parse(s);
+      try { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('tt2_ph_') === 0 && k !== VER) localStorage.removeItem(k); }); localStorage.setItem(VER, s); } catch (e) { }
+      return HP.data;
+    }).catch(function (e) { HP.asking = null; throw e; });
+    return HP.asking;
+  }
+
+  /* ---------- panel ---------- */
+  function panel() {
+    var p = $('phPanel');
+    if (!p) { p = document.createElement('div'); p.id = 'phPanel'; document.body.appendChild(p); }
+    return p;
+  }
+  function sec(title, inner, open) { return inner ? '<details' + (open ? ' open' : '') + '><summary>' + esc(title) + '</summary><div>' + inner + '</div></details>' : ''; }
+  function domCols() {
+    // Screens outside the table framework (Capex, Tech Projects, reports): read the columns and filters on screen now.
+    var tips = (HP.tips && HP.tips.c) || {}, seen = {}, cols = '';
+    Array.prototype.forEach.call(document.querySelectorAll('#view th'), function (th) {
+      var l = String(th.textContent || '').replace(/[\u2195\u25b2\u25bc\u2191\u2193]/g, '').replace(/\s+/g, ' ').trim();
+      if (!l || seen[l]) return; seen[l] = 1; cols += '<tr><td>' + esc(l) + '</td><td>' + esc(tips[l] || th.getAttribute('title') || '') + '</td></tr>';
+    });
+    var fl = [];
+    Array.prototype.forEach.call(document.querySelectorAll('#fbar label, #view .f > label'), function (l) { var t = String(l.textContent || '').replace(/\s+/g, ' ').trim(); if (t && fl.indexOf(t) < 0) fl.push(t); });
+    if (!cols && !fl.length) return '';
+    return (cols ? '<table class="phcols">' + cols + '</table>' : '') + (fl.length ? '<div style="margin-top:8px"><b>Filters:</b> ' + esc(fl.join(', ')) + '</div>' : '');
+  }
+  function liveCols(k) {
+    var T = window.ttBa, cfg = T && T.V && T.V[k]; if (!cfg) return domCols();
+    var tips = (HP.tips && HP.tips.c) || {};
+    var cols = (cfg.cols || []).map(function (c) { return '<tr><td>' + esc(c.l) + '</td><td>' + esc(tips[c.l] || '') + '</td></tr>'; }).join('');
+    var fl = (cfg.filters || []).map(function (f) { return esc(f[1]); }).join(', ');
+    var gr = (cfg.groups || []).map(function (g) { return esc(g[1]); }).join(', ');
+    return (cols ? '<table class="phcols">' + cols + '</table>' : '') + (fl ? '<div style="margin-top:8px"><b>Filters:</b> ' + fl + '</div>' : '') + (gr ? '<div><b>Group by:</b> ' + gr + '</div>' : '');
+  }
+  function pageHtml(k, e) {
+    var D = HP.data, parts = [];
+    var s = [];
+    (e.s || []).forEach(function (x) { if (x === '@ba') D._shared.ba.forEach(function (y) { if (!s.some(function (z) { return z[0] === y[0]; })) s.push(y); }); else s.push(x); });
+    parts.push(sec('What this page is for', '<div>' + esc(e.p || '') + '</div>', true));
+    if (e.d) parts.push(sec('Where the data comes from', '<div>' + esc(e.d) + '</div>', true));
+    if (s.length) parts.push(sec('What is on the page', '<dl>' + s.map(function (x) { return '<dt>' + esc(x[0]) + '</dt><dd>' + esc(x[1]) + '</dd>'; }).join('') + '</dl>', true));
+    var lc = liveCols(k); if (lc) parts.push(sec('Columns and filters on this screen', lc, false));
+    if (e.w) parts.push(sec('How to', e.w.map(function (x) { return '<div class="phw"><b>' + esc(x[0]) + '</b><ol>' + x[1].map(function (st) { return '<li>' + esc(st) + '</li>'; }).join('') + '</ol></div>'; }).join(''), true));
+    if (e.b) parts.push(sec('What it changes behind the scenes', '<ul>' + e.b.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>', false));
+    if (e.r) parts.push(sec('Rules and gotchas', '<ul>' + e.r.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>', false));
+    if (e.l) parts.push(sec('Related pages', '<div class="phl">' + e.l.map(function (x) { return '<a href="#" onclick="ttPhGo(\'' + esc(x[0]).replace(/'/g, '') + '\');return false;">' + esc(x[1]) + '</a>'; }).join('') + '</div>', true));
+    return parts.join('');
+  }
+  function draw() {
+    var p = panel(), D = HP.data, e, k = HP.key, title, sub, body;
+    if (HP.mode === 'index') {
+      title = 'Help for every page'; sub = 'Search, then click a page to read its help.';
+      body = '<div class="phidx"><input id="phFind" placeholder="Search page names and help text" oninput="ttPhFind(this.value)" autocomplete="off"></div><div id="phList"></div>';
+    } else {
+      var hit = entryFor(k); e = hit[1];
+      if (!e) { title = 'Page help'; sub = ''; body = '<div>No help is written for this screen yet. Use All pages to find it by name.</div>'; }
+      else { title = e.t || 'Page help'; sub = (e.g ? 'Menu: ' + e.g : '') + (hit[0] !== k && k.indexOf('table:') === 0 ? ' | ' + k.slice(6) + ' tab' : ''); body = pageHtml(hit[0], e); }
+    }
+    p.innerHTML = '<div class="phh"><h3>' + esc(title) + '</h3><div class="sub">' + esc(sub) + '</div><div class="pha">' +
+      (HP.mode === 'index' ? '<button class="btn small" onclick="ttPhBack()">This page</button>' : '<button class="btn small primary" onclick="ttPhTour()">Tour this page</button><button class="btn small" onclick="ttPhIndex()">All pages</button><button class="btn small" title="Open the TechTrack Web Guide: every screen in menu order" onclick="ttPhGuide()">Web Guide</button>') +
+      '<button class="btn small" onclick="ttPhAll(true)">Expand all</button><button class="btn small" onclick="ttPhAll(false)">Collapse all</button>' +
+      '<button class="btn small" title="Wider" onclick="$(\'phPanel\').classList.toggle(\'wide\')">&#8596;</button><button class="btn small" onclick="ttPhClose()">Close</button></div></div>' +
+      '<div class="phb">' + body + '</div>';
+    p.classList.add('open');
+    if (HP.mode === 'index') ttPhFind('');
+  }
+  window.ttPageHelp = function (k) {
+    HP.key = k || curKey(); HP.mode = 'page';
+    var p = panel(); p.classList.add('open');
+    if (!HP.data) p.innerHTML = '<div class="phh"><h3>Page help</h3></div><div class="phb"><div class="loading"><span class="spin"></span>Loading help...</div></div>';
+    load().then(draw).catch(function (e) { p.innerHTML = '<div class="phh"><h3>Page help</h3><div class="pha"><button class="btn small" onclick="ttPhClose()">Close</button></div></div><div class="phb"><div class="conf">' + esc(e.message) + '</div></div>'; });
+  };
+  window.ttPhGuide = function () { ttPhClose(); go('guide'); };
+  window.ttPhLoad = function () { return load(); };
+  window.ttPhClose = function () { var p = $('phPanel'); if (p) p.classList.remove('open'); };
+  window.ttPhAll = function (on) { Array.prototype.forEach.call(document.querySelectorAll('#phPanel details'), function (d) { d.open = on; }); };
+  window.ttPhIndex = function () { HP.mode = 'index'; draw(); var f = $('phFind'); if (f) f.focus(); };
+  window.ttPhBack = function () { HP.mode = 'page'; draw(); };
+  window.ttPhFind = function (q) {
+    var D = HP.data, n = norm(q), groups = {};
+    Object.keys(D).forEach(function (k) {
+      if (k.charAt(0) === '_' || k === 'tool' || k === 'vd') return;
+      var e = D[k]; if (!e || !e.t) return;
+      if (n && norm(e.t + ' ' + (e.p || '') + ' ' + (e.g || '')).indexOf(n) === -1) return;
+      (groups[e.g || 'Other'] = groups[e.g || 'Other'] || []).push([k, e.t]);
+    });
+    $('phList').innerHTML = Object.keys(groups).sort().map(function (g) {
+      return '<div class="phg">' + esc(g) + '</div>' + groups[g].sort(function (a, b) { return a[1].localeCompare(b[1]); }).map(function (x) { return '<a class="phi" href="#" onclick="ttPhShow(\'' + esc(x[0]).replace(/'/g, '') + '\');return false;">' + esc(x[1]) + '</a>'; }).join('');
+    }).join('') || '<div class="empty">No page matches.</div>';
+  };
+  window.ttPhShow = function (k) { HP.key = k; HP.mode = 'page'; draw(); };
+  // Related page link: open that page and show its help.
+  window.ttPhGo = function (k) {
+    if (k === 'panel') return ttPhShow('panel');
+    if (k.indexOf('m:') === 0) { if (window.ttRunTool) ttRunTool(k.slice(2), [], [], (HP.data[k] || {}).t || k.slice(2)); }
+    else go(k);
+    setTimeout(function () { HP.key = k; HP.mode = 'page'; draw(); }, 50);
+  };
+
+  /* ---------- tour of the open page ---------- */
+  function defaultTour(k, e) {
+    var D = HP.data, ba = D._shared.ba;
+    if (window.ttBa && ttBa.V && ttBa.V[k]) return [['.ba-head h2', e.t, e.p], ['.ba-head .acts', ba[0][0], ba[0][1]], ['.ba-filters', ba[1][0], ba[1][1]], ['.ba-tiles', ba[2][0], ba[2][1]], ['.ba-tbl', ba[3][0], ba[3][1]]];
+    if (k.indexOf('m:') === 0) return [['.toolhead', e.t, e.p], ['iframe.frame.tool', 'The screen', (e.s || []).map(function (x) { return x[0] + ': ' + x[1]; }).join(' ').slice(0, 600) || 'Use the buttons inside the screen. This panel explains each one.']];
+    if (k.indexOf('vendors:') === 0) return [['.vd-head', e.t, e.p], ['.vd-tiles', 'Counts', 'Click a count to filter to it.'], ['#view .card', 'Cards', 'Each card opens and closes. Actions are on each row.']];
+    if (k === 'vrec') return [['.vr-tabs', 'Tabs', 'Inbox, Send, Coverage and Imports.'], ['#view', e.t, e.p]];
+    return [['#view', e.t, e.p]];
+  }
+  var TR = { i: 0, steps: [], tip: null, hl: null };
+  function trEnd() { if (TR.tip) TR.tip.remove(); if (TR.hl) TR.hl.classList.remove('tour-hl'); TR.tip = TR.hl = null; }
+  function trStep() {
+    trEnd();
+    while (TR.i < TR.steps.length) {
+      var n = document.querySelector(TR.steps[TR.i][0]);
+      if (n) { var rr = n.getBoundingClientRect(); if (rr.width > 0 && rr.height > 0) break; }
+      TR.i++;
+    }
+    if (TR.i >= TR.steps.length) return trEnd();
+    var s = TR.steps[TR.i], el = document.querySelector(s[0]);
+    TR.hl = el; el.classList.add('tour-hl'); if (el.scrollIntoView) el.scrollIntoView({ block: 'nearest' });
+    var r = el.getBoundingClientRect();
+    var tip = document.createElement('div'); tip.className = 'tour-tip'; TR.tip = tip;
+    tip.innerHTML = '<h4>' + esc(s[1]) + ' <span style="color:var(--muted);font-weight:normal;font-size:12px">' + (TR.i + 1) + ' of ' + TR.steps.length + '</span></h4><div>' + esc(s[2]) + '</div><div class="tf"><button class="btn small">Stop</button><button class="btn small primary">' + (TR.i === TR.steps.length - 1 ? 'Done' : 'Next') + '</button></div>';
+    document.body.appendChild(tip);
+    var top = r.bottom + 10, left = Math.max(10, Math.min(r.left, window.innerWidth - 380));
+    if (top + tip.offsetHeight > window.innerHeight) top = Math.max(10, r.top - tip.offsetHeight - 10);
+    if (top < 10) top = 10;
+    tip.style.left = left + 'px'; tip.style.top = top + 'px'; tip.style.zIndex = 90;
+    var b = tip.querySelectorAll('button'); b[0].onclick = trEnd; b[1].onclick = function () { TR.i++; trStep(); };
+  }
+  window.ttPhTour = function () {
+    var k = curKey(), hit = entryFor(k), e = hit[1];
+    if (!e) return toast('No tour for this screen yet.', true);
+    var steps = (e.tour || []).slice();
+    if (!steps.length) steps = defaultTour(hit[0] === 'tool' ? k : hit[0], e);
+    if (document.querySelector('#fbar') && $('fbar').innerHTML && !steps.some(function (x) { return x[0] === '#fbar'; })) steps.push(['#fbar', 'The Works', (HP.data._shared && HP.data._shared.works) || 'Filters, search, Refresh, Expand and Collapse, Export Excel, Print / PDF and Email as dashboard.']);
+    ttPhClose(); TR.i = 0; TR.steps = steps; TR.key = k; trStep();
+  };
+
+  /* ---------- "?" buttons ---------- */
+  function topBtn() {
+    var tr = document.querySelector('header.top .top-right');
+    if (tr && !$('phTop')) { var b = document.createElement('button'); b.id = 'phTop'; b.className = 'btn small'; b.textContent = '?'; b.title = 'Page help: what this page is for and how to use it'; b.onclick = function () { ttPageHelp(); }; var vpb = tr.querySelector('button'); tr.insertBefore(b, vpb || null); }
+  }
+  function pageBtn() {
+    var v = $('view'); if (!v) return;
+    if (v.querySelector('.ph-q')) return;
+    var host = v.querySelector('.ba-head .acts, .vd-head .acts, .toolhead') || v.querySelector('.hello');
+    if (!host) return;
+    var b = document.createElement('button'); b.className = 'btn small ph-q'; b.textContent = '?'; b.title = 'Page help for this screen'; b.setAttribute('onclick', 'ttPageHelp()');
+    if (host.classList.contains('hello')) { b.style.float = 'right'; host.insertBefore(b, host.firstChild); } else host.insertBefore(b, host.firstChild);
+    var d = $('drawer');
+    if (d && d.classList.contains('open')) { var x = d.querySelector('.dh .x'); if (x && !x.querySelector('.ph-q')) { var c = document.createElement('button'); c.className = 'btn small ph-q'; c.textContent = '?'; c.title = 'Help for the project panel'; c.setAttribute('onclick', 'ttPageHelp(\'panel\')'); x.insertBefore(c, x.firstChild); } }
+  }
+
+  /* ---------- hover text ---------- */
+  function clean(t) { return String(t || '').replace(/[↕▲▼↑↓]/g, '').replace(/\(\d[\d,]*\)\s*$/, '').replace(/\s+/g, ' ').trim(); }
+  function setTip(el, tip) { if (tip && !el.getAttribute('title')) el.setAttribute('title', tip); }
+  function applyTips() {
+    var T = HP.tips; if (!T) return;
+    Array.prototype.forEach.call(document.querySelectorAll('#app button:not([title]), #app .tab:not([title])'), function (b) {
+      var t = clean(b.textContent), dv = b.getAttribute('data-v'), oc = b.getAttribute('onclick') || '';
+      if (dv && T.n[dv]) return setTip(b, T.n[dv]);
+      var mm = oc.match(/ttMenuClick\('(\w+)'/); if (mm && T.n['m:' + mm[1]]) return setTip(b, T.n['m:' + mm[1]]);
+      setTip(b, T.b[t]);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('#app th:not([title])'), function (th) { setTip(th, T.c[clean(th.textContent)]); });
+    Array.prototype.forEach.call(document.querySelectorAll('#app .f > label'), function (l) { var t = T.f[clean(l.textContent)]; if (t) { setTip(l, t); var s = l.parentNode.querySelector('select,input'); if (s) setTip(s, t); } });
+    Array.prototype.forEach.call(document.querySelectorAll('#app .ba-tile:not([title])'), function (x) { var l = x.querySelector('.l'); if (l) setTip(x, T.t[clean(l.textContent)]); });
+  }
+  var tipTimer = null;
+  function schedule() { clearTimeout(tipTimer); tipTimer = setTimeout(function () { try { if (TR.tip && curKey() !== TR.key) trEnd(); topBtn(); pageBtn(); applyTips(); } catch (e) { } }, 250); }
+  function loadTips() {
+    if (HP.tips || !S.token) return;
+    try { var c = localStorage.getItem(VER + '_tips'); if (c) { HP.tips = JSON.parse(c); schedule(); return; } } catch (e) { }
+    gs('ttPageHelpTips', S.token).then(function (s) { HP.tips = JSON.parse(s); try { localStorage.setItem(VER + '_tips', s); } catch (e) { } schedule(); }).catch(function () { });
+  }
+  function boot() {
+    var app = $('app'); if (!app) return;
+    if (window.MutationObserver) new MutationObserver(schedule).observe(app, { childList: true, subtree: true });
+    schedule();
+    // Escape stops a page tour first; a second Escape closes the help panel.
+    document.addEventListener('keydown', function (ev) {
+      if (ev.key !== 'Escape' && ev.keyCode !== 27) return;
+      if (TR.tip) { trEnd(); return; }
+      var p = $('phPanel'); if (p && p.classList.contains('open')) ttPhClose();
+    });
+    // Hover text loads after the app has been idle a few seconds, so it never slows the first screen.
+    var w = setInterval(function () { if (S.boot && S.token) { clearInterval(w); setTimeout(function () { if (window.requestIdleCallback) window.requestIdleCallback(function () { loadTips(); }, { timeout: 3000 }); else loadTips(); }, 4000); } }, 1000);
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
+})();
+</script>

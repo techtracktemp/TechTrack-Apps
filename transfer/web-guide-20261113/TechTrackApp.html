@@ -1,0 +1,1544 @@
+<!DOCTYPE html>
+<!-- C.Perry -->
+<!-- Prepared by: Chris Perry using TechTrack -->
+<!--
+  TECHTRACK APP (Nov 1 2026). Capex Workflow project.
+  New file: + > HTML > TechTrackApp. Served by doGet in TechTrackWebAppCore.
+  Dark MCR navy look (FCM StaffSuite layout). Exports and emails are Blue Box.
+  Nothing saves while typing: changes wait for the Save button.
+  Logins (Nov 1 2026): TechTrack has its own logins (Admin, Editor, Viewer).
+  New users pick their own password at the first sign-in.
+  TechTrackAppAdmin.html is included after TechTrackAppPlus.html.
+-->
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: #0F1B2D; --panel: #16263D; --panel2: #1C3150; --line: #2B4566; --navy: #224061;
+    --accent: #DCE6F1; --accent2: #8FB3DA; --text: #FFFFFF; --muted: #A9B8CC; --dim: #7F91A8;
+    --green: #92D050; --amber: #FFC000; --red: #E0454B; --blue: #5B9BD5; --dirty: #FFC000;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: Calibri, 'Segoe UI', Arial, sans-serif; font-size: 15px; }
+  a { color: var(--accent2); }
+  button { font-family: inherit; }
+  .btn { background: transparent; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .btn:hover { border-color: var(--accent2); background: var(--panel2); }
+  .btn.primary { background: var(--navy); border-color: #3A6596; }
+  .btn.primary:hover { background: #2C5280; }
+  .btn.accent { background: var(--accent); color: #10233F; border-color: var(--accent); font-weight: bold; }
+  .btn.small { padding: 3px 9px; font-size: 13px; }
+  .btn.danger { border-color: #7A2E33; color: #FFB3B6; }
+  .btn:disabled { opacity: .5; cursor: default; }
+  input, select, textarea { background: #0B1524; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 7px 9px; font-family: inherit; font-size: 14px; width: 100%; }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--accent2); }
+  input[type=checkbox] { width: auto; accent-color: #8FB3DA; transform: scale(1.15); }
+  input[type=date] { color-scheme: dark; }
+  .hidden { display: none !important; }
+
+  /* Sign in */
+  #login { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+  .login-card { width: 400px; max-width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 28px; }
+  .login-card h1 { margin: 10px 0 4px; font-size: 26px; }
+  .login-card p { color: var(--muted); margin: 0 0 18px; }
+  .login-card label { display: block; color: var(--muted); font-size: 13px; margin: 12px 0 5px; }
+  .login-msg { color: #FFB3B6; min-height: 20px; margin-top: 10px; font-size: 14px; }
+  .logo { display: inline-flex; align-items: center; gap: 10px; font-weight: bold; letter-spacing: 1px; }
+  .logo .mark { background: var(--accent); color: var(--navy); border-radius: 4px; padding: 3px 8px; font-size: 15px; }
+
+  /* Shell */
+  header.top { position: fixed; top: 0; left: 0; right: 0; height: 58px; background: var(--navy); display: flex; align-items: center; padding: 0 16px; gap: 14px; z-index: 30; border-bottom: 1px solid #335C8A; }
+  header.top .title { font-size: 20px; font-weight: bold; }
+  .hamb { background: none; border: none; color: #fff; font-size: 24px; cursor: pointer; padding: 4px 8px; }
+  .gsearch { flex: 1; max-width: 460px; position: relative; margin-left: 18px; }
+  .gsearch input { background: #18355A; border-color: #335C8A; }
+  .gresults { position: absolute; top: 40px; left: 0; right: 0; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; max-height: 420px; overflow: auto; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+  .gresults div.item { padding: 8px 12px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  .gresults div.item:hover { background: var(--panel2); }
+  .gresults .sub { color: var(--muted); font-size: 13px; }
+  .top-right { margin-left: auto; display: flex; align-items: center; gap: 10px; }
+  .who { text-align: right; line-height: 1.15; }
+  .who small { color: var(--accent); font-size: 12px; }
+  .bell { position: relative; cursor: pointer; font-size: 20px; padding: 2px 6px; }
+  .bell b { position: absolute; top: -4px; right: -6px; background: var(--amber); color: #000; border-radius: 9px; font-size: 11px; padding: 1px 5px; }
+  nav.side { position: fixed; top: 58px; bottom: 0; left: 0; width: 236px; background: #0C1726; border-right: 1px solid var(--line); overflow-y: auto; padding: 10px 8px 30px; z-index: 20; }
+  nav.side.closed { transform: translateX(-100%); }
+  .nav-item { display: block; width: 100%; text-align: left; background: none; border: none; color: var(--text); padding: 9px 12px; border-radius: 7px; font-size: 15px; cursor: pointer; }
+  .nav-item:hover { background: var(--panel2); }
+  .nav-item.active { background: var(--accent); color: var(--navy); font-weight: bold; }
+  .nav-group { margin-top: 12px; }
+  .nav-group > .gh { color: var(--dim); font-size: 12px; font-weight: bold; letter-spacing: 1.2px; padding: 6px 12px; cursor: pointer; user-select: none; }
+  .nav-group > .gh:before { content: '\25BE  '; }
+  .nav-group.shut > .gh:before { content: '\25B8  '; }
+  .nav-group.shut > .gi { display: none; }
+  .nav-group .nav-item { padding-left: 22px; }
+  main { margin-left: 236px; padding: 76px 20px 40px; min-height: 100vh; transition: margin .15s; }
+  main.wide { margin-left: 0; }
+
+  /* Filter bar */
+  .bar { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; margin-bottom: 14px; }
+  .bar .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+  .bar .f { display: flex; flex-direction: column; min-width: 140px; flex: 1; max-width: 220px; }
+  .bar .f label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .bar .works { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+  .chip { background: var(--panel2); border: 1px solid var(--line); border-radius: 14px; padding: 3px 10px; font-size: 13px; cursor: pointer; }
+  .chip.on { background: var(--accent); color: var(--navy); border-color: var(--accent); font-weight: bold; }
+
+  /* Greeting + tiles */
+  .hello { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; margin-bottom: 14px; }
+  .hello h2 { margin: 0 0 4px; font-size: 26px; }
+  .hello div { color: var(--muted); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 14px; }
+  .tile { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; cursor: pointer; transition: border-color .1s; }
+  .tile:hover { border-color: var(--accent2); }
+  .tile .n { font-size: 26px; font-weight: bold; }
+  .tile .l { color: var(--muted); font-size: 14px; }
+  .tile.warn .n { color: var(--amber); } .tile.bad .n { color: #FF8A8F; } .tile.good .n { color: var(--green); }
+  .cols2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; align-items: start; }
+  @media (max-width: 1100px) { .cols2 { grid-template-columns: 1fr; } }
+
+  /* Cards */
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }
+  .card > .ch { display: flex; align-items: center; gap: 10px; padding: 13px 16px; cursor: pointer; user-select: none; }
+  .card > .ch .tw { color: var(--muted); width: 12px; font-size: 12px; }
+  .card > .ch .tt { font-weight: bold; font-size: 16px; }
+  .card > .ch .meta { color: var(--muted); font-size: 13px; }
+  .card > .ch .right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+  .card > .cb { border-top: 1px solid var(--line); padding: 6px 0; }
+  .card.shut > .cb { display: none; }
+  .count { white-space: nowrap; background: var(--panel2); border: 1px solid var(--line); border-radius: 12px; padding: 1px 9px; font-size: 13px; }
+  .count.warn { background: #4A3A05; border-color: #7A5E00; color: var(--amber); }
+  .count.bad { background: #4A1518; border-color: #7A2E33; color: #FFB3B6; }
+  .item { display: flex; gap: 12px; align-items: center; padding: 9px 16px; border-bottom: 1px solid rgba(43,69,102,.55); cursor: pointer; }
+  .item:last-child { border-bottom: none; }
+  .item:hover { background: var(--panel2); }
+  .item .main { flex: 1; min-width: 0; }
+  .item .t1 { font-weight: bold; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .t2 { color: var(--muted); font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .item .amt { font-weight: bold; min-width: 90px; text-align: right; }
+  .empty { color: var(--dim); padding: 12px 16px; font-style: italic; }
+  .pill { display: inline-block; border-radius: 11px; padding: 2px 9px; font-size: 12px; font-weight: bold; white-space: nowrap; border: 1px solid transparent; }
+  .pill.g { background: #2D4A12; color: #C7EE9C; border-color: #4E7A1E; }
+  .pill.a { background: #4A3A05; color: #FFD966; border-color: #7A5E00; }
+  .pill.r { background: #4A1518; color: #FFB3B6; border-color: #7A2E33; }
+  .pill.b { background: #17324F; color: #BFD7F2; border-color: #335C8A; }
+  .pill.n { background: #26364C; color: var(--muted); border-color: #3A4D66; }
+  .coupa { background: #0B1524; border: 1px solid #335C8A; color: var(--accent2); border-radius: 6px; padding: 2px 8px; font-size: 12px; text-decoration: none; white-space: nowrap; }
+  .coupa:hover { border-color: var(--accent2); color: #fff; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+  .tab { background: var(--panel); border: 1px solid var(--line); color: var(--text); padding: 7px 14px; border-radius: 18px; cursor: pointer; font-size: 14px; }
+  .tab.on { background: var(--accent); color: var(--navy); border-color: var(--accent); font-weight: bold; }
+  .grid-hotels { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 12px; }
+  .grid-hotels .item { flex-wrap: wrap; row-gap: 4px; }
+  .grid-hotels .item .main { flex-basis: 100%; }
+  .grid-hotels .item .amt { margin-left: auto; }
+  .kv { display: grid; grid-template-columns: 180px 1fr; gap: 4px 12px; padding: 8px 16px; font-size: 14px; }
+  .kv .k { color: var(--muted); }
+  .kv .v { word-break: break-word; }
+  .sub-h { color: var(--accent); font-weight: bold; font-size: 13px; letter-spacing: .8px; padding: 10px 16px 4px; text-transform: uppercase; }
+  .more { text-align: center; padding: 8px; }
+  .loading { color: var(--muted); padding: 30px; text-align: center; }
+  .spin { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--accent2); border-radius: 50%; animation: sp .8s linear infinite; vertical-align: -3px; margin-right: 8px; }
+  @keyframes sp { to { transform: rotate(360deg); } }
+  /* Nov 2 2026 (Chris): the MCR logo is the loading animation everywhere in the app. */
+  @keyframes mcrFlip { 0% { transform: perspective(200px) rotateY(0deg) scale(.92); } 50% { transform: perspective(200px) rotateY(180deg) scale(1.04); } 100% { transform: perspective(200px) rotateY(360deg) scale(.92); } }
+  @keyframes mcrGlow { 0%, 100% { filter: drop-shadow(0 0 0 rgba(143,179,218,0)); } 50% { filter: drop-shadow(0 0 10px rgba(143,179,218,.55)); } }
+  .spin { width: 22px !important; height: 22px !important; border: none !important; border-radius: 50%; background: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%20100%20100%22%3E%3Ccircle%20cx=%2250%22%20cy=%2250%22%20r=%2250%22%20fill=%22%231A2B57%22/%3E%3Cpath%20fill=%22%23fff%22%20fill-rule=%22evenodd%22%20d=%22M53.8%2066.3C51.8%2066.0%2051.0%2065.8%2049.8%2065.3C48.6%2064.8%2047.8%2064.4%2046.5%2063.5C45.5%2062.8%2043.9%2061.2%2043.1%2059.9C42.5%2059.1%2041.7%2057.5%2041.6%2057.0C41.5%2056.8%2041.4%2056.5%2041.3%2056.3C41.1%2055.8%2040.9%2054.6%2040.7%2053.4C40.5%2051.8%2040.6%2049.0%2041.0%2047.5C41.1%2047.2%2041.2%2046.9%2041.2%2046.8C41.2%2046.8%2041.2%2046.6%2041.3%2046.5C41.3%2046.4%2041.4%2046.1%2041.5%2045.9C41.7%2045.4%2042.1%2044.4%2042.2%2044.2C42.3%2044.1%2042.4%2043.9%2042.4%2043.8C42.5%2043.7%2042.8%2043.3%2043.0%2042.8C44.2%2041.0%2045.9%2039.3%2047.7%2038.3C49.4%2037.3%2051.2%2036.6%2053.1%2036.3C54.4%2036.1%2056.5%2036.2%2057.8%2036.4C58.4%2036.4%2059.0%2036.5%2059.0%2036.6C59.1%2036.6%2059.4%2036.7%2059.8%2036.8C61.8%2037.3%2064.1%2038.6%2065.5%2040.1C65.8%2040.4%2066.1%2040.6%2066.1%2040.7C66.1%2040.8%2063.8%2043.1%2063.5%2043.2C63.4%2043.3%2063.3%2043.3%2062.7%2042.8C61.7%2042.0%2061.0%2041.6%2059.7%2041.0C59.3%2040.8%2058.5%2040.5%2058.2%2040.5C58.0%2040.4%2057.5%2040.4%2057.2%2040.3C56.3%2040.1%2054.3%2040.1%2053.5%2040.3C53.2%2040.4%2052.8%2040.5%2052.7%2040.5C52.5%2040.5%2050.6%2041.2%2050.4%2041.3C50.4%2041.4%2050.2%2041.5%2050.1%2041.6C49.5%2041.9%2048.2%2042.9%2047.5%2043.7C45.8%2045.6%2044.9%2048.0%2044.8%2050.6C44.7%2051.9%2044.8%2053.3%2045.0%2054.1C45.4%2055.5%2045.5%2055.8%2045.9%2056.5C46.4%2057.5%2046.9%2058.3%2047.8%2059.3C48.3%2059.9%2049.7%2060.8%2050.7%2061.3C52.3%2062.1%2053.8%2062.4%2055.7%2062.4C58.7%2062.4%2061.1%2061.4%2063.4%2059.3C63.9%2058.8%2064.3%2058.4%2064.4%2058.5C64.6%2058.5%2067.1%2060.9%2067.1%2061.0C67.1%2061.3%2065.3%2063.1%2064.0%2063.9C62.6%2064.8%2060.5%2065.8%2059.0%2066.1C56.8%2066.5%2055.2%2066.5%2053.8%2066.3ZM9.6%2065.9C9.4%2065.8%209.4%2036.8%209.6%2036.7C9.6%2036.6%2010.1%2036.6%2011.0%2036.6L12.3%2036.6L12.6%2036.9C12.7%2037.1%2013.1%2037.7%2013.3%2038.1C13.6%2038.6%2014.1%2039.3%2014.3%2039.7C14.6%2040.1%2014.9%2040.6%2015.1%2040.8C15.2%2041.0%2015.3%2041.3%2015.4%2041.4C15.5%2041.5%2015.6%2041.7%2015.8%2041.9C15.9%2042.2%2016.3%2042.8%2016.6%2043.2C16.9%2043.7%2017.1%2044.1%2017.1%2044.1C17.1%2044.2%2017.2%2044.3%2017.3%2044.4C17.4%2044.6%2018.1%2045.6%2018.8%2046.7C19.4%2047.8%2020.2%2049.0%2020.5%2049.5C20.8%2049.9%2021.2%2050.5%2021.3%2050.8C21.6%2051.2%2022.8%2053.1%2023.4%2054.1C23.6%2054.3%2023.7%2054.4%2023.8%2054.4C23.9%2054.3%2024.9%2052.7%2025.5%2051.7C25.6%2051.7%2026.0%2051.0%2026.4%2050.3C26.9%2049.6%2027.4%2048.9%2027.5%2048.7C28.1%2047.7%2030.3%2044.1%2031.0%2043.0C31.5%2042.3%2031.7%2041.9%2031.9%2041.7C31.9%2041.7%2032.0%2041.5%2032.1%2041.4C32.1%2041.3%2032.8%2040.2%2033.6%2039.0C34.3%2037.8%2035.0%2036.8%2035.1%2036.7C35.2%2036.6%2035.4%2036.6%2036.5%2036.6C37.2%2036.6%2037.8%2036.6%2037.9%2036.6C38.0%2036.7%2038.0%2065.7%2037.9%2065.9C37.8%2065.9%2037.1%2066.0%2035.9%2066.0C34.3%2066.0%2034.1%2066.0%2034.0%2065.9C33.8%2065.8%2033.8%2064.9%2033.8%2056.2C33.8%2050.1%2033.8%2046.6%2033.7%2046.5C33.7%2046.5%2033.4%2046.8%2032.9%2047.6C32.8%2047.8%2032.5%2048.3%2032.2%2048.7C31.4%2050.0%2030.2%2051.9%2029.4%2053.1C29.0%2053.7%2028.5%2054.5%2028.3%2054.9C27.8%2055.6%2027.3%2056.3%2026.3%2058.0C25.9%2058.7%2025.4%2059.3%2025.3%2059.4L25.1%2059.7L23.7%2059.7C23.0%2059.7%2022.4%2059.7%2022.3%2059.6C22.2%2059.6%2021.3%2058.2%2019.7%2055.7C19.6%2055.5%2019.2%2054.8%2018.8%2054.2C18.3%2053.5%2017.7%2052.5%2017.4%2052.0C16.3%2050.3%2015.3%2048.8%2014.3%2047.3C14.1%2046.9%2013.9%2046.6%2013.8%2046.6C13.6%2046.6%2013.6%2047.1%2013.6%2056.2L13.6%2065.8L13.4%2065.9C13.3%2066.0%2012.9%2066.0%2011.5%2066.0C10.2%2066.0%209.6%2066.0%209.6%2065.9ZM69.6%2065.9C69.4%2065.8%2069.4%2065.1%2069.4%2051.3C69.4%2040.1%2069.5%2036.7%2069.5%2036.7C69.6%2036.6%2071.0%2036.6%2075.0%2036.6C80.0%2036.6%2080.5%2036.6%2081.6%2036.7C84.4%2037.1%2086.3%2038.6%2087.5%2041.0C88.1%2042.2%2088.3%2042.8%2088.2%2044.4C88.2%2045.6%2088.2%2045.8%2088.0%2046.4C87.2%2049.1%2085.3%2051.1%2082.7%2051.8C82.1%2051.9%2082.1%2052.0%2082.2%2052.3C82.3%2052.4%2083.7%2054.4%2085.5%2056.6C87.2%2058.9%2088.8%2061.1%2089.1%2061.5C89.4%2061.9%2090.3%2063.0%2091.0%2064.0C92.1%2065.4%2092.3%2065.7%2092.2%2065.9C92.1%2066.0%2092.0%2066.0%2090.0%2066.0C88.8%2066.0%2087.7%2066.0%2087.6%2065.9C87.4%2065.9%2087.1%2065.5%2086.3%2064.4C85.7%2063.6%2084.2%2061.7%2083.1%2060.3C82.0%2058.8%2080.2%2056.4%2079.1%2054.9C77.2%2052.4%2077.0%2052.2%2076.7%2052.1C76.3%2052.1%2073.9%2052.1%2073.7%2052.2C73.6%2052.2%2073.6%2053.7%2073.6%2059.0C73.6%2064.9%2073.6%2065.7%2073.5%2065.8C73.4%2066.0%2073.3%2066.0%2071.5%2066.0C70.5%2066.0%2069.7%2066.0%2069.6%2065.9ZM81.5%2047.9C82.8%2047.5%2083.6%2046.7%2084.0%2045.5C84.2%2044.7%2084.2%2044.2%2084.0%2043.5C83.9%2043.3%2083.9%2043.0%2083.9%2042.9C83.9%2042.7%2083.1%2041.7%2082.8%2041.4C82.4%2041.1%2081.9%2040.9%2081.2%2040.7C80.7%2040.6%2080.1%2040.6%2077.1%2040.6L73.7%2040.6L73.6%2044.3C73.6%2047.0%2073.6%2048.0%2073.7%2048.1C73.8%2048.2%2074.3%2048.2%2077.4%2048.1C80.8%2048.1%2081.0%2048.1%2081.5%2047.9Z%22/%3E%3C/svg%3E") center / contain no-repeat !important; animation: mcrFlip 1.6s ease-in-out infinite, mcrGlow 1.6s ease-in-out infinite !important; vertical-align: -6px; }
+  .loading .spin { display: block; width: 76px !important; height: 76px !important; margin: 10px auto 14px !important; }
+  .loading { display: flex; flex-direction: column; align-items: center; }
+
+  /* Drawer (modeless) */
+  #drawer { position: fixed; top: 58px; right: 0; bottom: 0; width: 620px; max-width: 100%; background: #12223A; border-left: 1px solid var(--line); z-index: 40; display: flex; flex-direction: column; box-shadow: -10px 0 30px rgba(0,0,0,.35); transform: translateX(105%); transition: transform .18s; }
+  #drawer.open { transform: none; }
+  #drawer.max { width: 100%; }
+  .dh { padding: 14px 18px; border-bottom: 1px solid var(--line); }
+  .dh .x { float: right; display: flex; gap: 6px; }
+  .dh h3 { margin: 0 0 4px; font-size: 20px; padding-right: 90px; }
+  .dh .sub { color: var(--muted); font-size: 14px; }
+  .dh .pills { margin-top: 8px; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .dtabs { display: flex; gap: 4px; padding: 8px 14px 0; border-bottom: 1px solid var(--line); }
+  .dtab { background: none; border: none; color: var(--muted); padding: 8px 14px; cursor: pointer; border-bottom: 3px solid transparent; font-size: 15px; }
+  .dtab.on { color: #fff; border-bottom-color: var(--accent2); font-weight: bold; }
+  .dbody { flex: 1; overflow-y: auto; padding: 12px 16px 90px; }
+  .fgroup { background: var(--panel); border: 1px solid var(--line); border-radius: 9px; margin-bottom: 12px; }
+  .fgroup > .gh2 { padding: 10px 14px; font-weight: bold; cursor: pointer; user-select: none; }
+  .fgroup > .gh2:before { content: '\25BE  '; color: var(--muted); }
+  .fgroup.shut > .gh2:before { content: '\25B8  '; }
+  .fgroup.shut > .fg, .fgroup.shut > .fg2, .fgroup.shut > .kv, .fgroup.shut > .empty { display: none; }
+  .fg { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; padding: 4px 14px 14px; }
+  .fg .fld.wide { grid-column: 1 / -1; }
+  .fld label { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .fld.dirty input, .fld.dirty select, .fld.dirty textarea { border-color: var(--dirty); box-shadow: 0 0 0 1px var(--dirty) inset; }
+  .fld .ro { padding: 7px 9px; background: #0E1A2C; border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); min-height: 34px; word-break: break-word; }
+  .fld .lnk { margin-top: 5px; font-size: 12px; }
+  .savebar { position: absolute; left: 0; right: 0; bottom: 0; background: #0B1524; border-top: 1px solid var(--line); padding: 12px 16px; display: flex; align-items: center; gap: 10px; }
+  .savebar .st { color: var(--muted); flex: 1; font-size: 14px; }
+  .savebar .st.d { color: var(--dirty); font-weight: bold; }
+  .tl { position: relative; margin-left: 8px; padding-left: 18px; border-left: 2px solid var(--line); }
+  .tl .ev { position: relative; margin-bottom: 14px; }
+  .tl .ev:before { content: ''; position: absolute; left: -25px; top: 5px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent2); }
+  .tl .when { color: var(--muted); font-size: 13px; }
+  .tl .txt { white-space: pre-wrap; margin-top: 3px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; }
+  .ccitem { display: flex; gap: 10px; align-items: flex-start; padding: 7px 14px; }
+  .ccitem.dirty { background: rgba(255,192,0,.08); }
+  .ccitem small { color: var(--dim); display: block; }
+  .conf { background: #4A1518; border: 1px solid #7A2E33; color: #FFD5D7; border-radius: 8px; padding: 10px 12px; margin-bottom: 12px; font-size: 14px; }
+  #toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%); background: var(--accent); color: var(--navy); font-weight: bold; padding: 10px 18px; border-radius: 8px; z-index: 90; box-shadow: 0 6px 20px rgba(0,0,0,.4); }
+  #toast.err { background: #FFB3B6; color: #4A1518; }
+  .frame { width: 100%; height: calc(100vh - 210px); border: 1px solid var(--line); border-radius: 10px; background: #fff; }
+  .loader-out { background: #fff; color: #000; border-radius: 8px; padding: 12px; margin: 8px 16px 14px; max-height: 420px; overflow: auto; }
+  @media (max-width: 860px) {
+    nav.side { transform: translateX(-100%); } nav.side.mopen { transform: none; }
+    main { margin-left: 0; } .gsearch { display: none; } .who { display: none; } .fg { grid-template-columns: 1fr; }
+  }
+  /* MCR logo and animated loading screen (no white background) */
+  .mcr-logo { width: 30px; height: 30px; display: block; }
+  .login-card .mcr-logo { width: 46px; height: 46px; }
+  #splash { position: fixed; inset: 0; z-index: 200; background: radial-gradient(circle at 50% 42%, #13284A 0%, #0B1A2E 60%, #07111F 100%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px; transition: opacity .45s ease, visibility .45s; }
+  #splash.gone { opacity: 0; visibility: hidden; pointer-events: none; }
+  #splash .sp-wrap { position: relative; width: 168px; height: 168px; }
+  #splash .sp-logo { position: absolute; inset: 14px; width: 140px; height: 140px; filter: drop-shadow(0 10px 28px rgba(0,0,0,.55)); animation: spPop .7s cubic-bezier(.2,1.4,.4,1) both, spBreathe 2.4s ease-in-out .9s infinite; }
+  #splash .sp-logo .ll { clip-path: inset(0 100% 0 0); animation: spWipe .8s ease-out .45s forwards; }
+  #splash .sp-ring { position: absolute; inset: 0; width: 168px; height: 168px; animation: spSpin 1.4s linear infinite; }
+  #splash .sp-ring circle { fill: none; stroke-width: 3.5; stroke-linecap: round; }
+  #splash .sp-ring .trk { stroke: rgba(122,167,214,.16); }
+  #splash .sp-ring .arc { stroke: var(--accent); stroke-dasharray: 120 400; animation: spDash 1.4s ease-in-out infinite; }
+  #splash .sp-name { color: #EAF1FA; font-size: 20px; font-weight: bold; letter-spacing: 3px; opacity: 0; animation: spUp .6s ease-out .9s forwards; }
+  #splash .sp-msg { color: var(--muted); font-size: 14px; min-height: 18px; opacity: 0; animation: spUp .6s ease-out 1.1s forwards; }
+  @keyframes spPop { from { transform: scale(.35); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+  @keyframes spWipe { to { clip-path: inset(0 0 0 0); } }
+  @keyframes spBreathe { 0%,100% { transform: scale(1); } 50% { transform: scale(1.04); } }
+  @keyframes spSpin { to { transform: rotate(360deg); } }
+  @keyframes spDash { 0% { stroke-dasharray: 20 480; } 50% { stroke-dasharray: 180 320; } 100% { stroke-dasharray: 20 480; } }
+  @keyframes spUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+  @media (prefers-reduced-motion: reduce) { #splash * { animation-duration: .01s !important; animation-iteration-count: 1 !important; } }
+</style>
+</head>
+<body>
+<div id="splash">
+  <div class="sp-wrap">
+    <svg class="sp-ring" viewBox="0 0 168 168"><circle class="trk" cx="84" cy="84" r="80"/><circle class="arc" cx="84" cy="84" r="80"/></svg>
+    <svg class="sp-logo" viewBox="0 0 100 100" aria-label="MCR"><circle class="lc" cx="50" cy="50" r="50" fill="#1A2B57"/><path class="ll" fill="#fff" fill-rule="evenodd" d="M53.8 66.3C51.8 66.0 51.0 65.8 49.8 65.3C48.6 64.8 47.8 64.4 46.5 63.5C45.5 62.8 43.9 61.2 43.1 59.9C42.5 59.1 41.7 57.5 41.6 57.0C41.5 56.8 41.4 56.5 41.3 56.3C41.1 55.8 40.9 54.6 40.7 53.4C40.5 51.8 40.6 49.0 41.0 47.5C41.1 47.2 41.2 46.9 41.2 46.8C41.2 46.8 41.2 46.6 41.3 46.5C41.3 46.4 41.4 46.1 41.5 45.9C41.7 45.4 42.1 44.4 42.2 44.2C42.3 44.1 42.4 43.9 42.4 43.8C42.5 43.7 42.8 43.3 43.0 42.8C44.2 41.0 45.9 39.3 47.7 38.3C49.4 37.3 51.2 36.6 53.1 36.3C54.4 36.1 56.5 36.2 57.8 36.4C58.4 36.4 59.0 36.5 59.0 36.6C59.1 36.6 59.4 36.7 59.8 36.8C61.8 37.3 64.1 38.6 65.5 40.1C65.8 40.4 66.1 40.6 66.1 40.7C66.1 40.8 63.8 43.1 63.5 43.2C63.4 43.3 63.3 43.3 62.7 42.8C61.7 42.0 61.0 41.6 59.7 41.0C59.3 40.8 58.5 40.5 58.2 40.5C58.0 40.4 57.5 40.4 57.2 40.3C56.3 40.1 54.3 40.1 53.5 40.3C53.2 40.4 52.8 40.5 52.7 40.5C52.5 40.5 50.6 41.2 50.4 41.3C50.4 41.4 50.2 41.5 50.1 41.6C49.5 41.9 48.2 42.9 47.5 43.7C45.8 45.6 44.9 48.0 44.8 50.6C44.7 51.9 44.8 53.3 45.0 54.1C45.4 55.5 45.5 55.8 45.9 56.5C46.4 57.5 46.9 58.3 47.8 59.3C48.3 59.9 49.7 60.8 50.7 61.3C52.3 62.1 53.8 62.4 55.7 62.4C58.7 62.4 61.1 61.4 63.4 59.3C63.9 58.8 64.3 58.4 64.4 58.5C64.6 58.5 67.1 60.9 67.1 61.0C67.1 61.3 65.3 63.1 64.0 63.9C62.6 64.8 60.5 65.8 59.0 66.1C56.8 66.5 55.2 66.5 53.8 66.3ZM9.6 65.9C9.4 65.8 9.4 36.8 9.6 36.7C9.6 36.6 10.1 36.6 11.0 36.6L12.3 36.6L12.6 36.9C12.7 37.1 13.1 37.7 13.3 38.1C13.6 38.6 14.1 39.3 14.3 39.7C14.6 40.1 14.9 40.6 15.1 40.8C15.2 41.0 15.3 41.3 15.4 41.4C15.5 41.5 15.6 41.7 15.8 41.9C15.9 42.2 16.3 42.8 16.6 43.2C16.9 43.7 17.1 44.1 17.1 44.1C17.1 44.2 17.2 44.3 17.3 44.4C17.4 44.6 18.1 45.6 18.8 46.7C19.4 47.8 20.2 49.0 20.5 49.5C20.8 49.9 21.2 50.5 21.3 50.8C21.6 51.2 22.8 53.1 23.4 54.1C23.6 54.3 23.7 54.4 23.8 54.4C23.9 54.3 24.9 52.7 25.5 51.7C25.6 51.7 26.0 51.0 26.4 50.3C26.9 49.6 27.4 48.9 27.5 48.7C28.1 47.7 30.3 44.1 31.0 43.0C31.5 42.3 31.7 41.9 31.9 41.7C31.9 41.7 32.0 41.5 32.1 41.4C32.1 41.3 32.8 40.2 33.6 39.0C34.3 37.8 35.0 36.8 35.1 36.7C35.2 36.6 35.4 36.6 36.5 36.6C37.2 36.6 37.8 36.6 37.9 36.6C38.0 36.7 38.0 65.7 37.9 65.9C37.8 65.9 37.1 66.0 35.9 66.0C34.3 66.0 34.1 66.0 34.0 65.9C33.8 65.8 33.8 64.9 33.8 56.2C33.8 50.1 33.8 46.6 33.7 46.5C33.7 46.5 33.4 46.8 32.9 47.6C32.8 47.8 32.5 48.3 32.2 48.7C31.4 50.0 30.2 51.9 29.4 53.1C29.0 53.7 28.5 54.5 28.3 54.9C27.8 55.6 27.3 56.3 26.3 58.0C25.9 58.7 25.4 59.3 25.3 59.4L25.1 59.7L23.7 59.7C23.0 59.7 22.4 59.7 22.3 59.6C22.2 59.6 21.3 58.2 19.7 55.7C19.6 55.5 19.2 54.8 18.8 54.2C18.3 53.5 17.7 52.5 17.4 52.0C16.3 50.3 15.3 48.8 14.3 47.3C14.1 46.9 13.9 46.6 13.8 46.6C13.6 46.6 13.6 47.1 13.6 56.2L13.6 65.8L13.4 65.9C13.3 66.0 12.9 66.0 11.5 66.0C10.2 66.0 9.6 66.0 9.6 65.9ZM69.6 65.9C69.4 65.8 69.4 65.1 69.4 51.3C69.4 40.1 69.5 36.7 69.5 36.7C69.6 36.6 71.0 36.6 75.0 36.6C80.0 36.6 80.5 36.6 81.6 36.7C84.4 37.1 86.3 38.6 87.5 41.0C88.1 42.2 88.3 42.8 88.2 44.4C88.2 45.6 88.2 45.8 88.0 46.4C87.2 49.1 85.3 51.1 82.7 51.8C82.1 51.9 82.1 52.0 82.2 52.3C82.3 52.4 83.7 54.4 85.5 56.6C87.2 58.9 88.8 61.1 89.1 61.5C89.4 61.9 90.3 63.0 91.0 64.0C92.1 65.4 92.3 65.7 92.2 65.9C92.1 66.0 92.0 66.0 90.0 66.0C88.8 66.0 87.7 66.0 87.6 65.9C87.4 65.9 87.1 65.5 86.3 64.4C85.7 63.6 84.2 61.7 83.1 60.3C82.0 58.8 80.2 56.4 79.1 54.9C77.2 52.4 77.0 52.2 76.7 52.1C76.3 52.1 73.9 52.1 73.7 52.2C73.6 52.2 73.6 53.7 73.6 59.0C73.6 64.9 73.6 65.7 73.5 65.8C73.4 66.0 73.3 66.0 71.5 66.0C70.5 66.0 69.7 66.0 69.6 65.9ZM81.5 47.9C82.8 47.5 83.6 46.7 84.0 45.5C84.2 44.7 84.2 44.2 84.0 43.5C83.9 43.3 83.9 43.0 83.9 42.9C83.9 42.7 83.1 41.7 82.8 41.4C82.4 41.1 81.9 40.9 81.2 40.7C80.7 40.6 80.1 40.6 77.1 40.6L73.7 40.6L73.6 44.3C73.6 47.0 73.6 48.0 73.7 48.1C73.8 48.2 74.3 48.2 77.4 48.1C80.8 48.1 81.0 48.1 81.5 47.9Z"/></svg>
+  </div>
+  <div class="sp-name">TECHTRACK</div>
+  <div class="sp-msg" id="spMsg">Loading...</div>
+</div>
+
+<div id="login">
+  <div class="login-card">
+    <div class="logo"><svg class="mcr-logo" viewBox="0 0 100 100" aria-label="MCR"><circle class="lc" cx="50" cy="50" r="50" fill="#1A2B57"/><path class="ll" fill="#fff" fill-rule="evenodd" d="M53.8 66.3C51.8 66.0 51.0 65.8 49.8 65.3C48.6 64.8 47.8 64.4 46.5 63.5C45.5 62.8 43.9 61.2 43.1 59.9C42.5 59.1 41.7 57.5 41.6 57.0C41.5 56.8 41.4 56.5 41.3 56.3C41.1 55.8 40.9 54.6 40.7 53.4C40.5 51.8 40.6 49.0 41.0 47.5C41.1 47.2 41.2 46.9 41.2 46.8C41.2 46.8 41.2 46.6 41.3 46.5C41.3 46.4 41.4 46.1 41.5 45.9C41.7 45.4 42.1 44.4 42.2 44.2C42.3 44.1 42.4 43.9 42.4 43.8C42.5 43.7 42.8 43.3 43.0 42.8C44.2 41.0 45.9 39.3 47.7 38.3C49.4 37.3 51.2 36.6 53.1 36.3C54.4 36.1 56.5 36.2 57.8 36.4C58.4 36.4 59.0 36.5 59.0 36.6C59.1 36.6 59.4 36.7 59.8 36.8C61.8 37.3 64.1 38.6 65.5 40.1C65.8 40.4 66.1 40.6 66.1 40.7C66.1 40.8 63.8 43.1 63.5 43.2C63.4 43.3 63.3 43.3 62.7 42.8C61.7 42.0 61.0 41.6 59.7 41.0C59.3 40.8 58.5 40.5 58.2 40.5C58.0 40.4 57.5 40.4 57.2 40.3C56.3 40.1 54.3 40.1 53.5 40.3C53.2 40.4 52.8 40.5 52.7 40.5C52.5 40.5 50.6 41.2 50.4 41.3C50.4 41.4 50.2 41.5 50.1 41.6C49.5 41.9 48.2 42.9 47.5 43.7C45.8 45.6 44.9 48.0 44.8 50.6C44.7 51.9 44.8 53.3 45.0 54.1C45.4 55.5 45.5 55.8 45.9 56.5C46.4 57.5 46.9 58.3 47.8 59.3C48.3 59.9 49.7 60.8 50.7 61.3C52.3 62.1 53.8 62.4 55.7 62.4C58.7 62.4 61.1 61.4 63.4 59.3C63.9 58.8 64.3 58.4 64.4 58.5C64.6 58.5 67.1 60.9 67.1 61.0C67.1 61.3 65.3 63.1 64.0 63.9C62.6 64.8 60.5 65.8 59.0 66.1C56.8 66.5 55.2 66.5 53.8 66.3ZM9.6 65.9C9.4 65.8 9.4 36.8 9.6 36.7C9.6 36.6 10.1 36.6 11.0 36.6L12.3 36.6L12.6 36.9C12.7 37.1 13.1 37.7 13.3 38.1C13.6 38.6 14.1 39.3 14.3 39.7C14.6 40.1 14.9 40.6 15.1 40.8C15.2 41.0 15.3 41.3 15.4 41.4C15.5 41.5 15.6 41.7 15.8 41.9C15.9 42.2 16.3 42.8 16.6 43.2C16.9 43.7 17.1 44.1 17.1 44.1C17.1 44.2 17.2 44.3 17.3 44.4C17.4 44.6 18.1 45.6 18.8 46.7C19.4 47.8 20.2 49.0 20.5 49.5C20.8 49.9 21.2 50.5 21.3 50.8C21.6 51.2 22.8 53.1 23.4 54.1C23.6 54.3 23.7 54.4 23.8 54.4C23.9 54.3 24.9 52.7 25.5 51.7C25.6 51.7 26.0 51.0 26.4 50.3C26.9 49.6 27.4 48.9 27.5 48.7C28.1 47.7 30.3 44.1 31.0 43.0C31.5 42.3 31.7 41.9 31.9 41.7C31.9 41.7 32.0 41.5 32.1 41.4C32.1 41.3 32.8 40.2 33.6 39.0C34.3 37.8 35.0 36.8 35.1 36.7C35.2 36.6 35.4 36.6 36.5 36.6C37.2 36.6 37.8 36.6 37.9 36.6C38.0 36.7 38.0 65.7 37.9 65.9C37.8 65.9 37.1 66.0 35.9 66.0C34.3 66.0 34.1 66.0 34.0 65.9C33.8 65.8 33.8 64.9 33.8 56.2C33.8 50.1 33.8 46.6 33.7 46.5C33.7 46.5 33.4 46.8 32.9 47.6C32.8 47.8 32.5 48.3 32.2 48.7C31.4 50.0 30.2 51.9 29.4 53.1C29.0 53.7 28.5 54.5 28.3 54.9C27.8 55.6 27.3 56.3 26.3 58.0C25.9 58.7 25.4 59.3 25.3 59.4L25.1 59.7L23.7 59.7C23.0 59.7 22.4 59.7 22.3 59.6C22.2 59.6 21.3 58.2 19.7 55.7C19.6 55.5 19.2 54.8 18.8 54.2C18.3 53.5 17.7 52.5 17.4 52.0C16.3 50.3 15.3 48.8 14.3 47.3C14.1 46.9 13.9 46.6 13.8 46.6C13.6 46.6 13.6 47.1 13.6 56.2L13.6 65.8L13.4 65.9C13.3 66.0 12.9 66.0 11.5 66.0C10.2 66.0 9.6 66.0 9.6 65.9ZM69.6 65.9C69.4 65.8 69.4 65.1 69.4 51.3C69.4 40.1 69.5 36.7 69.5 36.7C69.6 36.6 71.0 36.6 75.0 36.6C80.0 36.6 80.5 36.6 81.6 36.7C84.4 37.1 86.3 38.6 87.5 41.0C88.1 42.2 88.3 42.8 88.2 44.4C88.2 45.6 88.2 45.8 88.0 46.4C87.2 49.1 85.3 51.1 82.7 51.8C82.1 51.9 82.1 52.0 82.2 52.3C82.3 52.4 83.7 54.4 85.5 56.6C87.2 58.9 88.8 61.1 89.1 61.5C89.4 61.9 90.3 63.0 91.0 64.0C92.1 65.4 92.3 65.7 92.2 65.9C92.1 66.0 92.0 66.0 90.0 66.0C88.8 66.0 87.7 66.0 87.6 65.9C87.4 65.9 87.1 65.5 86.3 64.4C85.7 63.6 84.2 61.7 83.1 60.3C82.0 58.8 80.2 56.4 79.1 54.9C77.2 52.4 77.0 52.2 76.7 52.1C76.3 52.1 73.9 52.1 73.7 52.2C73.6 52.2 73.6 53.7 73.6 59.0C73.6 64.9 73.6 65.7 73.5 65.8C73.4 66.0 73.3 66.0 71.5 66.0C70.5 66.0 69.7 66.0 69.6 65.9ZM81.5 47.9C82.8 47.5 83.6 46.7 84.0 45.5C84.2 44.7 84.2 44.2 84.0 43.5C83.9 43.3 83.9 43.0 83.9 42.9C83.9 42.7 83.1 41.7 82.8 41.4C82.4 41.1 81.9 40.9 81.2 40.7C80.7 40.6 80.1 40.6 77.1 40.6L73.7 40.6L73.6 44.3C73.6 47.0 73.6 48.0 73.7 48.1C73.8 48.2 74.3 48.2 77.4 48.1C80.8 48.1 81.0 48.1 81.5 47.9Z"/></svg> TECHNOLOGY</div>
+    <h1>TechTrack</h1>
+    <p>Sign in with your TechTrack email and password.</p>
+    <form id="lgForm" onsubmit="doSignIn(event)">
+      <label for="lgEmail">Email</label>
+      <input id="lgEmail" type="email" autocomplete="username" required>
+      <label for="lgPw">Password</label>
+      <input id="lgPw" type="password" autocomplete="current-password" required>
+      <div style="margin-top:18px;display:flex;gap:10px;align-items:center;">
+        <button class="btn accent" id="lgBtn" type="submit">Sign in</button>
+        <span style="font-size:13px;color:var(--muted);">Forgot your password? Ask a TechTrack Admin to reset it.</span>
+      </div>
+      <div class="login-msg" id="lgMsg"></div>
+      <div style="font-size:12px;color:var(--dim);margin-top:6px;">No TechTrack login yet? A Vendor Portal Admin password works here too. <a href="#" onclick="openPortal(event)">Open the Vendor Portal</a></div>
+    </form>
+    <form id="pwForm" class="hidden" onsubmit="doFirstPassword(event)">
+      <div style="font-weight:bold;font-size:17px;margin-top:4px;">Pick your own password</div>
+      <p style="margin:6px 0 0;">You signed in with a temporary password. Pick a new one to keep going.</p>
+      <label for="pwNew">New password</label>
+      <input id="pwNew" type="password" autocomplete="new-password" required>
+      <label for="pwNew2">Type it again</label>
+      <input id="pwNew2" type="password" autocomplete="new-password" required>
+      <div style="margin-top:18px;display:flex;gap:10px;align-items:center;">
+        <button class="btn accent" id="pwBtn" type="submit">Save and continue</button>
+        <a href="#" onclick="signOut();return false;" style="font-size:13px;">Cancel</a>
+      </div>
+      <div class="login-msg" id="pwMsg"></div>
+    </form>
+  </div>
+</div>
+
+<div id="app" class="hidden">
+  <header class="top">
+    <button class="hamb" onclick="toggleNav()" title="Menu">&#9776;</button>
+    <div class="logo" onclick="ttLogoHome()" title="Back to My Day" style="cursor:pointer"><svg class="mcr-logo" viewBox="0 0 100 100" aria-label="MCR"><circle class="lc" cx="50" cy="50" r="50" fill="#1A2B57"/><path class="ll" fill="#fff" fill-rule="evenodd" d="M53.8 66.3C51.8 66.0 51.0 65.8 49.8 65.3C48.6 64.8 47.8 64.4 46.5 63.5C45.5 62.8 43.9 61.2 43.1 59.9C42.5 59.1 41.7 57.5 41.6 57.0C41.5 56.8 41.4 56.5 41.3 56.3C41.1 55.8 40.9 54.6 40.7 53.4C40.5 51.8 40.6 49.0 41.0 47.5C41.1 47.2 41.2 46.9 41.2 46.8C41.2 46.8 41.2 46.6 41.3 46.5C41.3 46.4 41.4 46.1 41.5 45.9C41.7 45.4 42.1 44.4 42.2 44.2C42.3 44.1 42.4 43.9 42.4 43.8C42.5 43.7 42.8 43.3 43.0 42.8C44.2 41.0 45.9 39.3 47.7 38.3C49.4 37.3 51.2 36.6 53.1 36.3C54.4 36.1 56.5 36.2 57.8 36.4C58.4 36.4 59.0 36.5 59.0 36.6C59.1 36.6 59.4 36.7 59.8 36.8C61.8 37.3 64.1 38.6 65.5 40.1C65.8 40.4 66.1 40.6 66.1 40.7C66.1 40.8 63.8 43.1 63.5 43.2C63.4 43.3 63.3 43.3 62.7 42.8C61.7 42.0 61.0 41.6 59.7 41.0C59.3 40.8 58.5 40.5 58.2 40.5C58.0 40.4 57.5 40.4 57.2 40.3C56.3 40.1 54.3 40.1 53.5 40.3C53.2 40.4 52.8 40.5 52.7 40.5C52.5 40.5 50.6 41.2 50.4 41.3C50.4 41.4 50.2 41.5 50.1 41.6C49.5 41.9 48.2 42.9 47.5 43.7C45.8 45.6 44.9 48.0 44.8 50.6C44.7 51.9 44.8 53.3 45.0 54.1C45.4 55.5 45.5 55.8 45.9 56.5C46.4 57.5 46.9 58.3 47.8 59.3C48.3 59.9 49.7 60.8 50.7 61.3C52.3 62.1 53.8 62.4 55.7 62.4C58.7 62.4 61.1 61.4 63.4 59.3C63.9 58.8 64.3 58.4 64.4 58.5C64.6 58.5 67.1 60.9 67.1 61.0C67.1 61.3 65.3 63.1 64.0 63.9C62.6 64.8 60.5 65.8 59.0 66.1C56.8 66.5 55.2 66.5 53.8 66.3ZM9.6 65.9C9.4 65.8 9.4 36.8 9.6 36.7C9.6 36.6 10.1 36.6 11.0 36.6L12.3 36.6L12.6 36.9C12.7 37.1 13.1 37.7 13.3 38.1C13.6 38.6 14.1 39.3 14.3 39.7C14.6 40.1 14.9 40.6 15.1 40.8C15.2 41.0 15.3 41.3 15.4 41.4C15.5 41.5 15.6 41.7 15.8 41.9C15.9 42.2 16.3 42.8 16.6 43.2C16.9 43.7 17.1 44.1 17.1 44.1C17.1 44.2 17.2 44.3 17.3 44.4C17.4 44.6 18.1 45.6 18.8 46.7C19.4 47.8 20.2 49.0 20.5 49.5C20.8 49.9 21.2 50.5 21.3 50.8C21.6 51.2 22.8 53.1 23.4 54.1C23.6 54.3 23.7 54.4 23.8 54.4C23.9 54.3 24.9 52.7 25.5 51.7C25.6 51.7 26.0 51.0 26.4 50.3C26.9 49.6 27.4 48.9 27.5 48.7C28.1 47.7 30.3 44.1 31.0 43.0C31.5 42.3 31.7 41.9 31.9 41.7C31.9 41.7 32.0 41.5 32.1 41.4C32.1 41.3 32.8 40.2 33.6 39.0C34.3 37.8 35.0 36.8 35.1 36.7C35.2 36.6 35.4 36.6 36.5 36.6C37.2 36.6 37.8 36.6 37.9 36.6C38.0 36.7 38.0 65.7 37.9 65.9C37.8 65.9 37.1 66.0 35.9 66.0C34.3 66.0 34.1 66.0 34.0 65.9C33.8 65.8 33.8 64.9 33.8 56.2C33.8 50.1 33.8 46.6 33.7 46.5C33.7 46.5 33.4 46.8 32.9 47.6C32.8 47.8 32.5 48.3 32.2 48.7C31.4 50.0 30.2 51.9 29.4 53.1C29.0 53.7 28.5 54.5 28.3 54.9C27.8 55.6 27.3 56.3 26.3 58.0C25.9 58.7 25.4 59.3 25.3 59.4L25.1 59.7L23.7 59.7C23.0 59.7 22.4 59.7 22.3 59.6C22.2 59.6 21.3 58.2 19.7 55.7C19.6 55.5 19.2 54.8 18.8 54.2C18.3 53.5 17.7 52.5 17.4 52.0C16.3 50.3 15.3 48.8 14.3 47.3C14.1 46.9 13.9 46.6 13.8 46.6C13.6 46.6 13.6 47.1 13.6 56.2L13.6 65.8L13.4 65.9C13.3 66.0 12.9 66.0 11.5 66.0C10.2 66.0 9.6 66.0 9.6 65.9ZM69.6 65.9C69.4 65.8 69.4 65.1 69.4 51.3C69.4 40.1 69.5 36.7 69.5 36.7C69.6 36.6 71.0 36.6 75.0 36.6C80.0 36.6 80.5 36.6 81.6 36.7C84.4 37.1 86.3 38.6 87.5 41.0C88.1 42.2 88.3 42.8 88.2 44.4C88.2 45.6 88.2 45.8 88.0 46.4C87.2 49.1 85.3 51.1 82.7 51.8C82.1 51.9 82.1 52.0 82.2 52.3C82.3 52.4 83.7 54.4 85.5 56.6C87.2 58.9 88.8 61.1 89.1 61.5C89.4 61.9 90.3 63.0 91.0 64.0C92.1 65.4 92.3 65.7 92.2 65.9C92.1 66.0 92.0 66.0 90.0 66.0C88.8 66.0 87.7 66.0 87.6 65.9C87.4 65.9 87.1 65.5 86.3 64.4C85.7 63.6 84.2 61.7 83.1 60.3C82.0 58.8 80.2 56.4 79.1 54.9C77.2 52.4 77.0 52.2 76.7 52.1C76.3 52.1 73.9 52.1 73.7 52.2C73.6 52.2 73.6 53.7 73.6 59.0C73.6 64.9 73.6 65.7 73.5 65.8C73.4 66.0 73.3 66.0 71.5 66.0C70.5 66.0 69.7 66.0 69.6 65.9ZM81.5 47.9C82.8 47.5 83.6 46.7 84.0 45.5C84.2 44.7 84.2 44.2 84.0 43.5C83.9 43.3 83.9 43.0 83.9 42.9C83.9 42.7 83.1 41.7 82.8 41.4C82.4 41.1 81.9 40.9 81.2 40.7C80.7 40.6 80.1 40.6 77.1 40.6L73.7 40.6L73.6 44.3C73.6 47.0 73.6 48.0 73.7 48.1C73.8 48.2 74.3 48.2 77.4 48.1C80.8 48.1 81.0 48.1 81.5 47.9Z"/></svg></div>
+    <div class="title">TechTrack</div>
+    <div class="gsearch">
+      <input id="gq" placeholder="Search hotels, projects, vendors..." oninput="globalSearch()" onfocus="globalSearch()" autocomplete="off">
+      <div class="gresults hidden" id="gres"></div>
+    </div>
+    <div class="top-right">
+      <div class="who"><div id="whoName"></div><small id="whoRole">TechTrack Admin</small></div>
+      <div class="bell" title="Waiting on you" onclick="go('myday')">&#128276;<b id="bellN" class="hidden"></b></div>
+      <button class="btn small" onclick="openPortal(event)">Vendor Portal</button>
+      <button class="btn small" onclick="signOut()">Sign out</button>
+    </div>
+  </header>
+  <nav class="side" id="nav"></nav>
+  <main id="main">
+    <div class="bar" id="fbar"></div>
+    <div id="view"></div>
+  </main>
+  <aside id="drawer"></aside>
+</div>
+<div id="toast" class="hidden"></div>
+
+<script>
+/* ===================== STATE ===================== */
+var BOOT = <?!= bootstrap ?>;
+var S = {
+  token: '', boot: null, view: 'myday', table: 'Capex', report: 'paymentDue',
+  tables: {}, reports: {}, recent: null, f: {}, quick: '', open: {}, hotelOpen: {},
+  drawer: null, legacyOpen: null, loaderOut: {}
+};
+var TODAY = new Date(); TODAY.setHours(0, 0, 0, 0);
+var MAIN_TABLES = ['Capex', 'Tech Projects Tracker'];
+
+/* ===================== SERVER ===================== */
+function gs(fn) {
+  var args = Array.prototype.slice.call(arguments, 1);
+  return new Promise(function(resolve, reject) {
+    google.script.run.withSuccessHandler(resolve).withFailureHandler(function(err) {
+      var m = (err && err.message) || String(err);
+      if (/SIGNED_OUT/.test(m)) { signedOut(); reject(new Error('Your sign-in ended. Sign in again.')); return; }
+      if (/MUST_CHANGE/.test(m)) { showFirstPassword(); reject(new Error('Pick your own password first.')); return; }
+      reject(new Error(m));
+    })[fn].apply(null, args);
+  });
+}
+
+/* ===================== HELPERS ===================== */
+function esc(s) { return String(s === null || s === undefined ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function $(id) { return document.getElementById(id); }
+function norm(s) { return String(s === null || s === undefined ? '' : s).trim().toLowerCase(); }
+function money(n) { var v = Math.round(Number(n) || 0); var s = '$' + Math.abs(v).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ','); return v < 0 ? '(' + s + ')' : s; }
+function num(v) { if (typeof v === 'number') return v; var n = parseFloat(String(v || '').replace(/[$,\s]/g, '')); return isNaN(n) ? 0 : n; }
+function toDate(v) { if (!v) return null; var s = String(v); var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s); if (m) return new Date(+m[1], +m[2] - 1, +m[3]); var d = new Date(s); return isNaN(d) ? null : d; }
+function fmtDate(v) { var d = toDate(v); if (!d) return String(v || ''); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); }
+function days(d) { return Math.round((d - TODAY) / 86400000); }
+function toast(msg, bad) { var t = $('toast'); t.textContent = msg; t.className = bad ? 'err' : ''; clearTimeout(t._h); t._h = setTimeout(function() { t.className = 'hidden'; }, bad ? 6000 : 2600); }
+function findCol(cols, aliases) { for (var a = 0; a < aliases.length; a++) { for (var i = 0; i < cols.length; i++) { if (norm(cols[i].name) === norm(aliases[a])) return i; } } return -1; }
+function tableDef(sheet) { return (S.boot.tables || []).filter(function(t) { return t.sheet === sheet; })[0] || { sheet: sheet, label: sheet, project: ['Project'], hotel: ['Hotel Code'], edit: false }; }
+function hotelMap() { if (!S._hm) { S._hm = {}; (S.boot.hotels || []).forEach(function(h) { S._hm[h.code] = h; }); } return S._hm; }
+// Nov 2 2026 (C.Perry): hotels are keyed by Hotel Key. SpringHill Hampton is PHFHC-SHS behind the scenes; sc() shows the real code (PHFHC).
+function sc(c) { var h = hotelMap()[c]; return (h && h.shown) || c || ''; }
+
+var ALIAS = {
+  code: ['Hotel Code'], name: ['Hotel Name', 'Hotel'], vendor: ['Vendor'], brand: ['Brand'], fund: ['Fund'], category: ['Category'],
+  cost: ['Cost', 'Total Cost', 'Amount', 'Total', 'Contract Cost'],
+  status: ['Project Status', 'Status', 'Flow Status', 'Capital Committee Status'],
+  payment: ['Payment Status', 'Invoice Approval Status'],
+  stage: ['Payment Stage'],
+  date: ['Date Vendor', 'Start Date', 'Completion Date', 'Tentative Completion Date', 'Scheduled Date', 'Install Date', 'Date due', 'Date Due', 'Renewal Date']
+};
+
+// One project in a common shape, whatever tab it came from.
+function P(sheet, row) {
+  var t = S.tables[sheet]; if (!t) return null;
+  if (!t._ix) {
+    var ix = {}; Object.keys(ALIAS).forEach(function(k) { ix[k] = findCol(t.cols, ALIAS[k]); });
+    ix.project = findCol(t.cols, tableDef(sheet).project);
+    ix.coupa = []; t.cols.forEach(function(c, i) { if (/coupa|requisition|invoice link|capex link/i.test(c.name)) ix.coupa.push(i); });
+    t._ix = ix;
+  }
+  var ix = t._ix, g = function(k) { return ix[k] === -1 || ix[k] === undefined ? '' : row.v[ix[k]]; };
+  var shown = String(g('code') || '').trim().toUpperCase();
+  var code = row.k || shown;   // row.k = Hotel Key, only sent for a shared code (PHFHC)
+  var h = hotelMap()[code] || {};
+  var links = [];
+  ix.coupa.forEach(function(i) {
+    var url = (row.l && row.l[i]) || (/^https?:\/\//i.test(String(row.v[i] || '')) ? row.v[i] : '');
+    if (url) links.push({ label: /requisition/i.test(t.cols[i].name) ? 'Coupa Req' : (/invoice/i.test(t.cols[i].name) ? 'Invoice' : 'Coupa'), url: url });
+  });
+  t.cols.forEach(function(c, i) { if (row.l && row.l[i] && ix.coupa.indexOf(i) === -1 && /coupa/i.test(row.l[i])) links.push({ label: 'Coupa', url: row.l[i] }); });
+  return {
+    sheet: sheet, row: row, r: row.r, code: code, shown: shown, hotel: g('name') || h.name || code, project: String(g('project') || ''),
+    vendor: String(g('vendor') || ''), brand: g('brand') || h.brand || '', fund: g('fund') || h.fund || '', rvp: h.rvp || '',
+    category: String(g('category') || ''), cost: num(g('cost')), status: String(g('status') || ''), payment: String(g('payment') || ''), stage: String(g('stage') || ''),
+    date: toDate(g('date')), links: links
+  };
+}
+function isDone(p) { return /complete|closed|cancel|done|archiv|rejected|dead/i.test(p.status) || /^(complete|completed|closed|cancel)/i.test(p.payment) || /archive/i.test(p.sheet); }
+function pillClass(s) {
+  s = norm(s);
+  if (!s) return 'n';
+  if (/deposit paid/.test(s)) return 'a';
+  if (/complete|paid|approved|done|closed|live|active|yes/.test(s)) return 'g';
+  if (/overdue|past due|reject|hold|cancel|denied|fail|locked|no$/.test(s)) return 'r';
+  if (/approval|pending|await|need|schedul|progress|quote|tbd|review|invoice|deposit|bring back|investigat/.test(s)) return 'a';
+  return 'b';
+}
+function pill(s) { return s ? '<span class="pill ' + pillClass(s) + '">' + esc(s) + '</span>' : ''; }
+function coupaBtns(links) { return (links || []).map(function(l) { return '<a class="coupa" href="' + esc(l.url) + '" target="_blank" onclick="event.stopPropagation()">' + esc(l.label) + ' &#8599;</a>'; }).join(' '); }
+
+/* ===================== SIGN IN ===================== */
+// Signed in: one-click switch, no second sign-in. Signed out: plain portal link.
+function openPortal(e) {
+  if (e) e.preventDefault();
+  if (!S.token) { window.open(BOOT.vendorPortalUrl, '_blank'); return; }
+  var w = window.open('', '_blank');
+  gs('ttOpenPortal', S.token).then(function(r) {
+    if (w) w.location.href = r.url; else window.open(r.url, '_blank');
+  }).catch(function() {
+    // Server not updated yet (or the switch failed): open the portal sign-in instead.
+    if (w) w.location.href = BOOT.vendorPortalUrl; else window.open(BOOT.vendorPortalUrl, '_blank');
+  });
+}
+function doSignIn(e) {
+  e.preventDefault();
+  var btn = $('lgBtn'); btn.disabled = true; btn.textContent = 'Checking...'; $('lgMsg').textContent = '';
+  gs('ttSignIn', $('lgEmail').value, $('lgPw').value).then(function(res) {
+    btn.disabled = false; btn.textContent = 'Sign in';
+    if (!res.ok) { $('lgMsg').textContent = res.msg; return; }
+    S.token = res.token; try { localStorage.setItem('tt2_token', res.token); localStorage.setItem('tt2_email', $('lgEmail').value); } catch (x) {}
+    $('lgPw').value = '';
+    if (res.mustChange) { showFirstPassword(); return; }
+    start();
+  }).catch(function(err) { btn.disabled = false; btn.textContent = 'Sign in'; $('lgMsg').textContent = err.message; });
+}
+/* First sign-in with a temporary password: pick your own before anything else. */
+function showFirstPassword() {
+  splashDone();
+  $('app').classList.add('hidden'); $('login').classList.remove('hidden');
+  $('lgForm').classList.add('hidden'); $('pwForm').classList.remove('hidden');
+  $('pwMsg').textContent = ''; $('pwNew').value = ''; $('pwNew2').value = '';
+  setTimeout(function() { $('pwNew').focus(); }, 50);
+}
+function doFirstPassword(e) {
+  e.preventDefault();
+  if ($('pwNew').value !== $('pwNew2').value) { $('pwMsg').textContent = 'The two passwords do not match.'; return; }
+  var btn = $('pwBtn'); btn.disabled = true; btn.textContent = 'Saving...'; $('pwMsg').textContent = '';
+  gs('ttChangeMyPassword', S.token, '', $('pwNew').value).then(function() {
+    btn.disabled = false; btn.textContent = 'Save and continue';
+    $('pwNew').value = ''; $('pwNew2').value = '';
+    $('pwForm').classList.add('hidden'); $('lgForm').classList.remove('hidden');
+    toast('Password saved. Welcome to TechTrack.');
+    start();
+  }).catch(function(err) { btn.disabled = false; btn.textContent = 'Save and continue'; $('pwMsg').textContent = err.message; });
+}
+/* ===================== LOADING SCREEN ===================== */
+var SPLASH_AT = Date.now();
+function splash(msg) { var el = $('splash'); if (!el) return; if (msg) $('spMsg').textContent = msg; el.classList.remove('gone'); SPLASH_AT = Date.now(); }
+function splashDone() { var el = $('splash'); if (!el) return; var wait = Math.max(0, 1300 - (Date.now() - SPLASH_AT)); setTimeout(function() { el.classList.add('gone'); }, wait); }
+function signedOut() {
+  S.token = ''; S.view = 'myday'; try { localStorage.removeItem('tt2_token'); } catch (x) {}
+  snapClear();
+  $('app').classList.add('hidden'); $('login').classList.remove('hidden'); splashDone();
+  if ($('pwForm')) { $('pwForm').classList.add('hidden'); $('lgForm').classList.remove('hidden'); }
+  $('lgMsg').textContent = 'Please sign in again.';
+}
+function signOut() {
+  if (dirtyCount() && !confirm('You have unsaved changes. Sign out anyway?')) return;
+  gs('ttSignOut', S.token).catch(function() {}); S.drawer = null; signedOut(); $('lgMsg').textContent = '';
+}
+/* Instant open (Nov 1 2026): the last copy of My Day's data is kept in this browser.
+   The app shows it right away, then swaps in fresh data from TechTrack a moment later.
+   Saving still checks the live sheet first, so an older copy can never overwrite newer data. */
+var SNAP_KEY = 'tt2_snap';
+function snapSave() {
+  try {
+    var t = {}; MAIN_TABLES.forEach(function(k) { if (S.tables[k]) t[k] = S.tables[k]; });
+    localStorage.setItem(SNAP_KEY, JSON.stringify({ email: S.boot.user.email, at: Date.now(), boot: S.boot, tables: t, recent: S.recent || null }));
+  } catch (x) { try { localStorage.removeItem(SNAP_KEY); } catch (y) {} }
+}
+function snapLoad() {
+  try { var s = JSON.parse(localStorage.getItem(SNAP_KEY) || 'null'); var who = (localStorage.getItem('tt2_email') || '').toLowerCase(); if (s && s.boot && s.tables && Date.now() - s.at < 7 * 86400000 && (!s.email || !who || s.email === who)) return s; } catch (x) {}
+  return null;
+}
+function syncChip(on) {
+  var el = $('syncChip');
+  if (!el) { el = document.createElement('div'); el.id = 'syncChip'; el.style.cssText = 'position:fixed;right:16px;bottom:16px;z-index:60;background:#13294B;color:#fff;border:1px solid #2E5A88;border-radius:18px;padding:6px 12px;font-size:12px;display:none'; el.innerHTML = '<span class="spin"></span> Updating from TechTrack...'; document.body.appendChild(el); }
+  el.style.display = on ? 'block' : 'none';
+}
+function snapClear() { try { localStorage.removeItem(SNAP_KEY); } catch (x) {} }
+function start() {
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading TechTrack...</div>';
+  splash('Loading TechTrack...');
+  var snap = snapLoad(), fromSnap = false;
+  if (snap) {
+    fromSnap = true; S.stale = true;
+    S.boot = snap.boot; S._hm = null; TODAY = toDate(snap.boot.today) || TODAY;
+    Object.keys(snap.tables).forEach(function(k) { S.tables[k] = snap.tables[k]; });
+    if (snap.recent) S.recent = snap.recent;
+    $('whoName').textContent = snap.boot.user.name; $('whoRole').textContent = 'TechTrack ' + ((snap.boot.access && snap.boot.access.role) || 'Admin');
+    buildNav(); go(S.view || 'myday'); splashDone();
+    syncChip(true);
+  }
+  gs('ttBoot', S.token).then(function(b) {
+    S.boot = b; S._hm = null; TODAY = toDate(b.today) || TODAY;
+    if (!fromSnap) $('spMsg').textContent = 'Loading projects for ' + (b.hotels || []).length + ' hotels...';
+    $('whoName').textContent = b.user.name; $('whoRole').textContent = 'TechTrack ' + ((b.access && b.access.role) || 'Admin');
+    if (!fromSnap) buildNav();
+    return gs('ttGetTables', S.token, MAIN_TABLES, false);
+  }).then(function(t) {
+    Object.keys(t).forEach(function(k) { S.tables[k] = t[k]; });
+    S.stale = false;
+    if (fromSnap) { if (!S.drawer || S.drawer.mode === 'support') render(); syncChip(false); }
+    else { go(S.view || 'myday'); splashDone(); }
+    snapSave();
+    hardyEnsure();  // Hardy Group (Nov 11 2026): adds the column once, admins only
+    gs('ttRecentUpdates', S.token, 7).then(function(u) { S.recent = u; snapSave(); if (S.view === 'myday') render(); }).catch(function() {});
+    loadPms(false).then(function() { if (!S.drawer || S.drawer.mode === 'support') render(); else pmRedraw(); });
+    if (typeof window.ttPrefetch === 'function') window.ttPrefetch();
+  }).catch(function(err) { splashDone(); syncChip(false); if (!fromSnap) $('view').innerHTML = '<div class="conf">' + esc(err.message) + '</div>'; else toast(err.message, true); });
+}
+window.addEventListener('load', function() {
+  try { S.token = localStorage.getItem('tt2_token') || ''; $('lgEmail').value = localStorage.getItem('tt2_email') || ''; } catch (x) {}
+  if (BOOT.portalCode) {
+    // Opened from the Vendor Portal TechTrack button: sign in with the one-time code.
+    $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+    $('view').innerHTML = '<div class="loading"><span class="spin"></span>Signing you in from the Vendor Portal...</div>';
+    $('spMsg').textContent = 'Signing you in from the Vendor Portal...';
+    gs('ttFromPortal', BOOT.portalCode).then(function(res) {
+      if (!res.ok) { signedOut(); $('lgMsg').textContent = res.msg; return; }
+      S.token = res.token; try { localStorage.setItem('tt2_token', res.token); localStorage.setItem('tt2_email', res.user.email); } catch (x) {}
+      start();
+    }).catch(function(err) { signedOut(); $('lgMsg').textContent = err.message; });
+    return;
+  }
+  if (S.token) start(); else splashDone();
+});
+window.addEventListener('beforeunload', function(e) { if (dirtyCount()) { e.preventDefault(); e.returnValue = ''; } });
+
+/* ===================== NAV ===================== */
+function buildNav() {
+  var t = S.boot.tables, html = '';
+  html += navItem('myday', 'My Day') + navItem('summary', 'Company Summary');
+  html += navGroup('PROJECTS', t.filter(function(x) { return x.group === 'Projects'; }).map(function(x) { return navItem('table:' + x.sheet, x.label); }).join(''));
+  html += navGroup('MONEY', t.filter(function(x) { return x.group === 'Money'; }).map(function(x) { return navItem('table:' + x.sheet, x.label); }).join('') +
+    (S.boot.reports || []).map(function(r) { return navItem('report:' + r.name, r.label); }).join(''));
+  html += navGroup('HOTELS', navItem('hotels', 'Hotels') + t.filter(function(x) { return x.group === 'Hotels'; }).map(function(x) { return navItem('table:' + x.sheet, x.label); }).join(''));
+  html += navGroup('ARCHIVE', t.filter(function(x) { return x.group === 'Archive'; }).map(function(x) { return navItem('table:' + x.sheet, x.label); }).join(''), true);
+  html += navGroup('TOOLS', navItem('loaders', 'Loader Hub') + navItem('legacy', 'All Dashboards') + navItem('links', 'Links and Forms'));
+  $('nav').innerHTML = html;
+}
+function navItem(v, label) { return '<button class="nav-item" data-v="' + esc(v) + '" onclick="go(this.getAttribute(\'data-v\'))">' + esc(label) + '</button>'; }
+function navGroup(title, inner, shut) { return '<div class="nav-group' + (shut ? ' shut' : '') + '"><div class="gh" onclick="this.parentNode.classList.toggle(\'shut\')">' + title + '</div><div class="gi">' + inner + '</div></div>'; }
+function toggleNav() { var n = $('nav'); if (window.innerWidth <= 860) { n.classList.toggle('mopen'); } else { n.classList.toggle('closed'); $('main').classList.toggle('wide'); } }
+// Nov 2 2026 (Chris): clicking the MCR logo goes back to My Day.
+function ttLogoHome() { if (!S.token) return; var n = $('nav'); if (n && n.classList.contains('mopen')) n.classList.remove('mopen'); go('myday'); }
+function markNav() { Array.prototype.forEach.call(document.querySelectorAll('.nav-item'), function(b) { b.classList.toggle('active', b.getAttribute('data-v') === S.view); }); }
+
+function go(v) {
+  S.view = v; S.quick = S.quick || '';
+  if (v.indexOf('table:') === 0) S.table = v.slice(6);
+  if (v.indexOf('report:') === 0) S.report = v.slice(7);
+  markNav();
+  if (window.innerWidth <= 860) $('nav').classList.remove('mopen');
+  ensureData().then(render);
+}
+function ensureData() {
+  var need = [];
+  if (S.view.indexOf('table:') === 0 && !S.tables[S.table]) need.push(S.table);
+  if (S.view === 'hotels' || S.view === 'summary') MAIN_TABLES.forEach(function(t) { if (!S.tables[t]) need.push(t); });
+  if (S.view.indexOf('report:') === 0 && !S.reports[S.report]) {
+    $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading report...</div>';
+    return gs('ttGetReport', S.token, S.report, false).then(function(r) { S.reports[S.report] = r; }).catch(function(e) { toast(e.message, true); });
+  }
+  if (!need.length) return Promise.resolve();
+  $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading ' + esc(need.join(', ')) + '...</div>';
+  return gs('ttGetTables', S.token, need, false).then(function(t) { Object.keys(t).forEach(function(k) { S.tables[k] = t[k]; }); }).catch(function(e) { toast(e.message, true); });
+}
+function refresh() {
+  var sheets = Object.keys(S.tables);
+  toast('Refreshing...');
+  var jobs = [gs('ttGetTables', S.token, sheets, true).then(function(t) { Object.keys(t).forEach(function(k) { S.tables[k] = t[k]; }); })];
+  if (S.view.indexOf('report:') === 0) jobs.push(gs('ttGetReport', S.token, S.report, true).then(function(r) { S.reports[S.report] = r; }));
+  jobs.push(gs('ttRecentUpdates', S.token, 7, true).then(function(u) { S.recent = u; }));
+  jobs.push(loadPms(true));
+  Promise.all(jobs).then(function() { render(); toast('Up to date'); }).catch(function(e) { toast(e.message, true); });
+}
+
+/* ===================== FILTERS (every level) ===================== */
+var FILTERS = [
+  { k: 'brand', label: 'Brand' }, { k: 'fund', label: 'Fund' }, { k: 'rvp', label: 'RVP' }, { k: 'code', label: 'Hotel' },
+  { k: 'status', label: 'Status' }, { k: 'payment', label: 'Payment Status' }, { k: 'vendor', label: 'Vendor' }, { k: 'category', label: 'Category' }
+];
+function filterSource() {
+  var out = [];
+  var sheets = S.view.indexOf('table:') === 0 ? [S.table] : MAIN_TABLES;
+  sheets.forEach(function(s) { var t = S.tables[s]; if (t && t.rows) t.rows.forEach(function(r) { var p = P(s, r); if (p) out.push(p); }); });
+  return out;
+}
+function renderBar(works) {
+  var src = filterSource(), opts = {};
+  FILTERS.forEach(function(f) { opts[f.k] = {}; });
+  src.forEach(function(p) { FILTERS.forEach(function(f) { var v = f.k === 'code' ? p.code : p[f.k]; if (v) opts[f.k][v] = f.k === 'code' ? (p.hotel + ' (' + sc(p.code) + ')') : v; }); });
+  if (S.view === 'hotels') (S.boot.hotels || []).forEach(function(h) { ['brand', 'fund', 'rvp'].forEach(function(k) { if (h[k]) opts[k][h[k]] = h[k]; }); opts.code[h.code] = h.name + ' (' + sc(h.code) + ')'; });
+  var html = '<div class="row">';
+  FILTERS.forEach(function(f) {
+    var keys = Object.keys(opts[f.k]).sort(function(a, b) { return String(opts[f.k][a]).localeCompare(String(opts[f.k][b])); });
+    if (!keys.length && f.k !== 'code') return;
+    html += '<div class="f"><label>' + f.label + '</label><select onchange="setF(\'' + f.k + '\', this.value)"><option value="">All</option>' +
+      keys.map(function(k) { return '<option value="' + esc(k) + '"' + (S.f[f.k] === k ? ' selected' : '') + '>' + esc(opts[f.k][k]) + '</option>'; }).join('') + '</select></div>';
+  });
+  html += '<div class="f" style="max-width:260px;"><label>Search</label><input id="fq" value="' + esc(S.f.q || '') + '" placeholder="Type to filter" oninput="setQ(this.value)"></div>';
+  html += '<div class="works">' + (works || '') +
+    '<button class="btn small" onclick="refresh()">Refresh</button>' +
+    '<button class="btn small" onclick="expandAll(true)">Expand all</button>' +
+    '<button class="btn small" onclick="expandAll(false)">Collapse all</button>' +
+    '<button class="btn small" onclick="exportExcel()">Export Excel</button>' +
+    '<button class="btn small" onclick="printPdf()">Print / PDF</button>' +
+    '<button class="btn small" onclick="emailDash()">Email as dashboard</button></div></div>';
+  var active = Object.keys(S.f).filter(function(k) { return S.f[k]; });
+  if (active.length || S.quick) {
+    html += '<div class="chips">' + (S.quick ? '<span class="chip on" onclick="S.quick=\'\';render()">' + esc(QUICK[S.quick].label) + ' &#10005;</span>' : '') +
+      active.map(function(k) { return '<span class="chip on" onclick="setF(\'' + k + '\',\'\')">' + esc(k === 'q' ? 'Search: ' + S.f.q : S.f[k]) + ' &#10005;</span>'; }).join('') +
+      '<span class="chip" onclick="S.f={};S.quick=\'\';render()">Clear all</span></div>';
+  }
+  $('fbar').innerHTML = html;
+}
+function setF(k, v) { S.f[k] = v; render(); }
+var qTimer;
+function setQ(v) { clearTimeout(qTimer); qTimer = setTimeout(function() { S.f.q = v; render(); var el = $('fq'); if (el) { el.focus(); el.setSelectionRange(v.length, v.length); } }, 220); }
+function passes(p) {
+  var f = S.f;
+  if (f.brand && p.brand !== f.brand) return false;
+  if (f.fund && p.fund !== f.fund) return false;
+  if (f.rvp && p.rvp !== f.rvp) return false;
+  if (f.code && p.code !== f.code) return false;
+  if (f.status && p.status !== f.status) return false;
+  if (f.payment && p.payment !== f.payment) return false;
+  if (f.vendor && p.vendor !== f.vendor) return false;
+  if (f.category && p.category !== f.category) return false;
+  if (f.q) { var q = norm(f.q); if ((p.code + ' ' + p.hotel + ' ' + p.project + ' ' + p.vendor + ' ' + p.status + ' ' + p.payment + ' ' + p.category).toLowerCase().indexOf(q) === -1) return false; }
+  if (S.quick && !QUICK[S.quick].test(p)) return false;
+  return true;
+}
+var QUICK = {
+  open: { label: 'Open projects', test: function(p) { return !isDone(p); } },
+  overdue: { label: 'Overdue', test: function(p) { return !isDone(p) && p.date && p.date < TODAY; } },
+  approvals: { label: 'In Approvals', test: function(p) { return /approval/i.test(p.payment) && !isDone(p); } },
+  week: { label: 'Next 7 days', test: function(p) { return !isDone(p) && p.date && days(p.date) >= 0 && days(p.date) <= 7; } },
+  pay: { label: 'Need to Pay', test: function(p) { return /need to pay|due|past due/i.test(p.payment) && !/paid/i.test(p.payment); } },
+  awaiting: { label: 'Awaiting Schedule', test: function(p) { return /await.*sched/i.test(p.status) || (!isDone(p) && !p.date && /paid|approved/i.test(p.payment)); } }
+};
+
+/* ===================== RENDER ===================== */
+function render() {
+  markNav();
+  var v = S.view;
+  if (v === 'myday') return renderMyDay();
+  if (v === 'summary') return renderSummary();
+  if (v === 'hotels') return renderHotels();
+  if (v.indexOf('table:') === 0) return renderTable();
+  if (v.indexOf('report:') === 0) return renderReport();
+  if (v === 'loaders') return renderLoaders();
+  if (v === 'legacy') return renderLegacy();
+  if (v === 'links') return renderLinks();
+}
+function allMain() { var out = []; MAIN_TABLES.forEach(function(s) { var t = S.tables[s]; if (t && t.rows) t.rows.forEach(function(r) { out.push(P(s, r)); }); }); return out.filter(passes); }
+// Nov 13 2026 (Chris: "I like things to start collapsed"): every dashboard and list section starts closed on each load.
+// Only what you open in this visit stays open; nothing is remembered between loads. The project panel is not affected.
+function isOpen(key, dflt) { return S.open[key] === undefined ? false : S.open[key]; }
+function cardShell(key, title, meta, right, body, dflt) {
+  return '<div class="card' + (isOpen(key, dflt) ? '' : ' shut') + '" data-k="' + esc(key) + '"><div class="ch" onclick="toggleCard(this)"><span class="tw">' + (isOpen(key, dflt) ? '&#9660;' : '&#9654;') +
+    '</span><span class="tt">' + title + '</span><span class="meta">' + (meta || '') + '</span><span class="right" onclick="event.stopPropagation()">' + (right || '') + '</span></div><div class="cb">' + body + '</div></div>';
+}
+function toggleCard(ch) {
+  var c = ch.parentNode, k = c.getAttribute('data-k'); var open = c.classList.contains('shut');
+  S.open[k] = open; c.classList.toggle('shut', !open); ch.querySelector('.tw').innerHTML = open ? '&#9660;' : '&#9654;';
+  var lazy = c.querySelector('[data-lazy]'); if (open && lazy) fillLazy(lazy);
+}
+function expandAll(on) {
+  Array.prototype.forEach.call(document.querySelectorAll('#view .card'), function(c) {
+    S.open[c.getAttribute('data-k')] = on; c.classList.toggle('shut', !on);
+    var tw = c.querySelector('.tw'); if (tw) tw.innerHTML = on ? '&#9660;' : '&#9654;';
+    var lazy = c.querySelector('[data-lazy]'); if (on && lazy) fillLazy(lazy);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#drawer .fgroup'), function(g) { g.classList.toggle('shut', !on); });
+}
+/* ===================== VENDOR PM (Nov 10 2026, C.Perry) =====================
+   Same "Vendor Project PMs" tab the Vendor Portal uses. One PM per project per vendor. */
+function pmKeyProj(v) { return String(v == null ? '' : v).replace(/\s*[\u2013\u2014]\s*/g, ' - ').trim().toLowerCase(); }
+function pmKeyVendor(v) { return pmKeyProj(v).replace(/[^a-z0-9*]/g, ''); }
+function pmFor(p) {
+  if (!S.pms || !p) return null;
+  if (!S._pmIx) { S._pmIx = {}; S.pms.forEach(function(x) { var k = x.code + '|' + x.project; (S._pmIx[k] = S._pmIx[k] || []).push(x); }); }
+  var pk = pmKeyProj(p.project), list = S._pmIx[String(p.code).toUpperCase() + '|' + pk] || S._pmIx[String(sc(p.code)).toUpperCase() + '|' + pk];
+  if (!list || !list.length) return null;
+  var vn = pmKeyVendor(p.vendor);
+  return list.filter(function(x) { return x.vn === vn; })[0] || (vn ? null : list[0]);
+}
+function loadPms(fresh) {
+  return gs('ttPmAll', S.token, !!fresh).then(function(x) { S.pms = x || []; S._pmIx = null; }).catch(function() {});
+}
+function pmLineHtml(p) {
+  var pm = pmFor(p), can = tableDef(p.sheet).edit;
+  return '<div class="sub" id="pmLine" style="margin-top:6px;"><b>PM Assigned:</b> ' + (pm ? esc(pm.name) + (pm.email && pm.email !== pm.name ? ' (<a href="mailto:' + esc(pm.email) + '">' + esc(pm.email) + '</a>)' : '') : (S.pms ? 'None yet' : 'Loading...')) +
+    (can ? ' <button class="btn small" onclick="pmEdit()">' + (pm ? 'Change PM' : 'Assign PM') + '</button>' : '') + '</div>';
+}
+function pmEdit() {
+  var d = S.drawer; if (!d || !d.p) return;
+  var p = d.p, pm = pmFor(p) || {}, vn = pmKeyVendor(p.vendor), seen = {}, opts = '';
+  (S.pms || []).forEach(function(x) { if (x.vn === vn && !seen[x.name]) { seen[x.name] = 1; opts += '<option value="' + esc(x.name) + '" data-e="' + esc(x.email) + '">'; } });
+  $('pmLine').innerHTML = '<b>PM Assigned:</b> <input id="pmName" list="pmNames" placeholder="PM name" value="' + esc(pm.name || '') + '" style="width:170px;" oninput="pmPick()"> ' +
+    '<input id="pmEmail" placeholder="PM email (optional)" value="' + esc(pm.email || '') + '" style="width:200px;"> <datalist id="pmNames">' + opts + '</datalist>' +
+    '<button class="btn small accent" onclick="pmSave(false)">Save PM</button> ' + (pm.name ? '<button class="btn small" onclick="pmSave(true)">Clear</button> ' : '') +
+    '<button class="btn small" onclick="pmRedraw()">Cancel</button>' + (p.vendor ? '' : '<div style="margin-top:4px;">This row has no Vendor yet, so the PM is saved without one.</div>');
+}
+function pmPick() {
+  var n = $('pmName').value, o = Array.prototype.filter.call(document.querySelectorAll('#pmNames option'), function(x) { return x.value === n; })[0];
+  if (o && o.getAttribute('data-e') && !$('pmEmail').value) $('pmEmail').value = o.getAttribute('data-e');
+}
+function pmRedraw() { var el = $('pmLine'); if (el && S.drawer && S.drawer.p) el.outerHTML = pmLineHtml(S.drawer.p); }
+function pmSave(clear) {
+  var d = S.drawer; if (!d || !d.p) return;
+  var p = d.p, name = clear ? '' : $('pmName').value.trim(), email = clear ? '' : $('pmEmail').value.trim();
+  if (!clear && !name && !email) return toast('Type the PM name first.', true);
+  toast('Saving PM...');
+  gs('ttSetPm', S.token, p.code, p.hotel, p.project, p.vendor, name, email).then(function(x) {
+    S.pms = x || []; S._pmIx = null; pmRedraw(); toast(clear ? 'PM cleared' : 'PM saved');
+  }).catch(function(e) { toast(e.message, true); });
+}
+function projItem(p, extra) {
+  var due = p.date ? fmtDate(p.date) : '';
+  var late = p.date && !isDone(p) && p.date < TODAY;
+  return '<div class="item" onclick="openProject(\'' + esc(p.sheet) + '\',' + p.r + ')"><div class="main"><div class="t1">' + esc(p.project || '(no project name)') + '</div><div class="t2">' +
+    esc(p.hotel) + ' (' + esc(sc(p.code)) + ')' + (p.vendor ? ' | ' + esc(p.vendor) : '') + (pmFor(p) ? ' | PM: ' + esc(pmFor(p).name) : '') + (due ? ' | ' + (late ? '<span style="color:#FF8A8F">' + esc(due) + '</span>' : esc(due)) : '') + (extra ? ' | ' + extra : '') +
+    '</div></div>' + pill(p.status) + ' ' + pill(p.payment) + ' ' + pill(p.stage) + ' ' + coupaBtns(p.links) + (p.cost ? '<div class="amt">' + money(p.cost) + '</div>' : '<div class="amt"></div>') + '</div>';
+}
+function listOrEmpty(list, max, fmt) {
+  if (!list.length) return '<div class="empty">Nothing here right now.</div>';
+  var html = list.slice(0, max).map(fmt || function(p) { return projItem(p); }).join('');
+  if (list.length > max) html += '<div class="more"><button class="btn small" onclick="this.parentNode.outerHTML=\'\'">Showing ' + max + ' of ' + list.length + '. Use the tile to see all.</button></div>';
+  return html;
+}
+
+function myDayModel() {
+  var all = allMain();
+  var open = all.filter(QUICK.open.test), overdue = all.filter(QUICK.overdue.test), appr = all.filter(QUICK.approvals.test),
+      week = all.filter(QUICK.week.test), pay = all.filter(QUICK.pay.test), awaiting = all.filter(QUICK.awaiting.test);
+  overdue.sort(function(a, b) { return a.date - b.date; }); week.sort(function(a, b) { return a.date - b.date; });
+  appr.sort(function(a, b) { return b.cost - a.cost; }); pay.sort(function(a, b) { return b.cost - a.cost; });
+  return { all: all, open: open, overdue: overdue, appr: appr, week: week, pay: pay, awaiting: awaiting };
+}
+function renderMyDay() {
+  renderBar('');
+  var m = myDayModel();
+  var hr = new Date().getHours(), hello = hr < 12 ? 'Good morning' : (hr < 17 ? 'Good afternoon' : 'Good evening');
+  var first = String(S.boot.user.name || '').split(' ')[0];
+  var bell = m.overdue.length + m.appr.length; $('bellN').textContent = bell; $('bellN').classList.toggle('hidden', !bell);
+  var sum = function(l) { return l.reduce(function(a, p) { return a + p.cost; }, 0); };
+  var recent = (S.recent || []).filter(function(u) { var h = hotelMap()[u.code] || {}; return (!S.f.code || u.code === S.f.code) && (!S.f.brand || h.brand === S.f.brand) && (!S.f.fund || h.fund === S.f.fund) && (!S.f.rvp || h.rvp === S.f.rvp) && (!S.f.q || norm(u.text + u.pid + u.code).indexOf(norm(S.f.q)) !== -1); });
+  var html = '<div class="hello"><h2>' + hello + ', ' + esc(first) + '</h2><div>' + TODAY.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' }) +
+    ' | ' + (S.boot.hotels || []).length + ' hotels | ' + m.open.length + ' open projects | Data as of ' + esc((S.tables.Capex || {}).asOf || S.boot.asOf) + '</div></div>';
+  html += '<div class="tiles">' +
+    tile('open', m.open.length, 'Open projects (' + money(sum(m.open)) + ')', '') +
+    tile('overdue', m.overdue.length, 'Past their date', m.overdue.length ? 'bad' : 'good') +
+    tile('approvals', m.appr.length, 'In Approvals (' + money(sum(m.appr)) + ')', m.appr.length ? 'warn' : '') +
+    tile('week', m.week.length, 'Scheduled next 7 days', '') +
+    tile('pay', m.pay.length, 'Need to Pay (' + money(sum(m.pay)) + ')', m.pay.length ? 'warn' : '') +
+    '<div class="tile" onclick="go(\'myday\');S.open[\'md-upd\']=true;render()"><div class="n">' + (S.recent ? recent.length : '...') + '</div><div class="l">Project Updates last 7 days</div></div>' +
+    // Nov 12 2026 (Chris): the Stage Board tile is gone from My Day. Stage Board is under PROJECTS in the menu.
+    '</div>';
+  var left = cardShell('md-week', 'Scheduled next 7 days', '', '<span class="count">' + m.week.length + '</span>', listOrEmpty(m.week, 25), true) +
+    cardShell('md-over', 'Past their date', 'not marked complete', '<span class="count ' + (m.overdue.length ? 'bad' : '') + '">' + m.overdue.length + '</span><button class="btn small" onclick="quick(\'overdue\')">See all</button>', listOrEmpty(m.overdue, 25), true) +
+    cardShell('md-await', 'Awaiting schedule', '', '<span class="count">' + m.awaiting.length + '</span>', listOrEmpty(m.awaiting, 25), false);
+  var right = cardShell('md-appr', 'Waiting in Coupa approvals', '', '<span class="count ' + (m.appr.length ? 'warn' : '') + '">' + m.appr.length + '</span><button class="btn small" onclick="quick(\'approvals\')">See all</button>', listOrEmpty(m.appr, 25), true) +
+    cardShell('md-pay', 'Need to Pay', '', '<span class="count ' + (m.pay.length ? 'warn' : '') + '">' + m.pay.length + '</span>', listOrEmpty(m.pay, 25), false) +
+    cardShell('md-upd', 'Latest Project Updates', 'last 7 days', '<span class="count">' + recent.length + '</span>', S.recent ? listOrEmpty(recent, 30, updItem) : '<div class="loading"><span class="spin"></span>Loading updates...</div>', false);
+  html += '<div class="cols2"><div>' + left + '</div><div>' + right + '</div></div>';
+  $('view').innerHTML = html;
+}
+function tile(q, n, label, cls) { return '<div class="tile ' + cls + '" onclick="quick(\'' + q + '\')"><div class="n">' + n + '</div><div class="l">' + esc(label) + '</div></div>'; }
+function quick(q) { S.quick = q; S.view = 'table:' + (S.table && MAIN_TABLES.indexOf(S.table) !== -1 ? S.table : 'Capex'); S.table = S.view.slice(6); S.allMain = true; go(S.view); }
+function updItem(u) {
+  var h = hotelMap()[u.code] || {};
+  return '<div class="item" onclick="openByKey(\'' + esc(u.sheet) + '\',\'' + esc(u.code) + '\',\'' + esc(String(u.pid).replace(/'/g, '')) + '\')"><div class="main"><div class="t1">' + esc((h.name || u.code) + ' | ' + (u.pid || u.sheet)) + '</div><div class="t2">' +
+    esc(u.text) + '</div></div><span class="pill n">' + esc(u.author || '') + '</span><div class="amt" style="font-weight:normal;color:var(--muted);font-size:13px;">' + esc(u.t ? new Date(u.t).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '') + '</div></div>';
+}
+function openByKey(sheet, code, pid) {
+  var t = S.tables[sheet];
+  var load = t ? Promise.resolve() : gs('ttGetTables', S.token, [sheet], false).then(function(x) { S.tables[sheet] = x[sheet]; });
+  load.then(function() {
+    var tt = S.tables[sheet]; if (!tt || !tt.rows) return toast('That tab is not in the app.', true);
+    var hit = tt.rows.filter(function(r) { var p = P(sheet, r); return p.code === code && norm(p.project) === norm(pid); })[0] || tt.rows.filter(function(r) { return P(sheet, r).code === code; })[0];
+    if (hit) openProject(sheet, hit.r); else toast('Could not find that project on ' + sheet + '.', true);
+  });
+}
+
+/* ---------- Company Summary ---------- */
+function renderSummary() {
+  renderBar('');
+  var all = allMain(), byBrand = {}, byFund = {}, byStatus = {};
+  all.forEach(function(p) {
+    if (isDone(p)) return;
+    [[byBrand, p.brand || 'No brand'], [byFund, p.fund || 'No fund'], [byStatus, p.payment || p.status || 'No status']].forEach(function(x) {
+      var o = x[0][x[1]] = x[0][x[1]] || { n: 0, c: 0, list: [] }; o.n++; o.c += p.cost; o.list.push(p);
+    });
+  });
+  var block = function(key, title, obj) {
+    var keys = Object.keys(obj).sort(function(a, b) { return obj[b].c - obj[a].c; });
+    return cardShell(key, title, '', '<span class="count">' + keys.length + '</span>', keys.map(function(k) {
+      var o = obj[k];
+      return cardShell(key + ':' + k, esc(k), o.n + ' projects', '<b>' + money(o.c) + '</b>', '<div data-lazy="' + esc(key + '|' + k) + '"></div>', false);
+    }).join('') || '<div class="empty">No open projects match these filters.</div>', true);
+  };
+  S._sum = { brand: byBrand, fund: byFund, status: byStatus };
+  $('view').innerHTML = '<div class="hello"><h2>Company Summary</h2><div>Open projects on Capex and Tech Projects, grouped three ways. Expand any group to see its projects.</div></div>' +
+    '<div class="cols2"><div>' + block('sum-brand', 'By brand', byBrand) + block('sum-fund', 'By fund', byFund) + '</div><div>' + block('sum-status', 'By payment or project status', byStatus) + '</div></div>';
+  Array.prototype.forEach.call(document.querySelectorAll('#view .card:not(.shut) [data-lazy]'), fillLazy);
+}
+function fillLazy(el) {
+  if (el.getAttribute('data-done')) return;
+  var k = el.getAttribute('data-lazy'), list = [];
+  if (k.indexOf('sum-') === 0) { var parts = k.split('|'); var grp = S._sum[parts[0].replace('sum-', '')]; list = (grp[parts.slice(1).join('|')] || {}).list || []; el.innerHTML = listOrEmpty(list, 200); }
+  if (k.indexOf('hotel|') === 0) { el.innerHTML = hotelProjects(k.slice(6)); }
+  if (k.indexOf('grp|') === 0) { el.innerHTML = (S._grp[k.slice(4)] || []).map(function(p) { return projItem(p); }).join(''); }
+  el.setAttribute('data-done', '1');
+}
+
+/* ---------- Projects (one tab) ---------- */
+var SORTS = { hotel: 'Hotel', date: 'Date', cost: 'Cost', status: 'Status' };
+function renderTable() {
+  var def = tableDef(S.table), t = S.tables[S.table];
+  if (!t || t.missing) { renderBar(''); $('view').innerHTML = '<div class="conf">The ' + esc(S.table) + ' tab was not found.</div>'; return; }
+  var isProjects = findCol(t.cols, ALIAS.code) !== -1 || findCol(t.cols, ALIAS.name) !== -1;
+  renderBar(def.edit ? '<button class="btn small primary" onclick="openNew()">+ New</button>' : '');
+  var tabs = (S.boot.tables || []).filter(function(x) { return x.group === def.group; });
+  var html = '<div class="tabs">' + tabs.map(function(x) { return '<span class="tab' + (x.sheet === S.table ? ' on' : '') + '" onclick="go(\'table:' + esc(x.sheet) + '\')">' + esc(x.label) + '</span>'; }).join('') +
+    '<span style="margin-left:auto;display:flex;gap:6px;align-items:center;color:var(--muted);font-size:13px;">Group by <select style="width:auto" onchange="S.groupBy=this.value;render()">' +
+    ['hotel', 'status', 'payment', 'vendor', 'brand', 'none'].map(function(g) { return '<option value="' + g + '"' + ((S.groupBy || 'hotel') === g ? ' selected' : '') + '>' + g.charAt(0).toUpperCase() + g.slice(1) + '</option>'; }).join('') +
+    '</select> Sort <select style="width:auto" onchange="S.sortBy=this.value;render()">' + Object.keys(SORTS).map(function(k) { return '<option value="' + k + '"' + ((S.sortBy || 'date') === k ? ' selected' : '') + '>' + SORTS[k] + '</option>'; }).join('') + '</select></span></div>';
+  var list = t.rows.map(function(r) { return P(S.table, r); }).filter(passes);
+  var sb = S.sortBy || 'date';
+  list.sort(function(a, b) {
+    if (sb === 'cost') return b.cost - a.cost;
+    if (sb === 'status') return (a.status + a.payment).localeCompare(b.status + b.payment);
+    if (sb === 'hotel') return a.hotel.localeCompare(b.hotel);
+    return (a.date ? a.date.getTime() : 9e15) - (b.date ? b.date.getTime() : 9e15);
+  });
+  var total = list.reduce(function(a, p) { return a + p.cost; }, 0);
+  html += '<div class="hello" style="padding:12px 18px;"><b>' + esc(def.label) + '</b> <span style="color:var(--muted)">| ' + list.length + ' of ' + t.rows.length + ' rows' + (total ? ' | ' + money(total) : '') + ' | as of ' + esc(t.asOf || '') + (def.edit ? '' : ' | view only') + '</span></div>';
+  var gb = S.groupBy || 'hotel';
+  if (!isProjects && gb === 'hotel') gb = 'none';
+  S._grp = {};
+  if (gb === 'none') {
+    html += '<div class="card"><div class="cb">' + listOrEmpty(list, 400, isProjects ? null : plainItem) + '</div></div>';
+  } else {
+    var groups = {}, order = [];
+    list.forEach(function(p) { var g = gb === 'hotel' ? p.hotel + ' (' + sc(p.code) + ')' : (p[gb] || '(blank)'); if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(p); });
+    if (gb !== 'hotel' || sb === 'hotel') order.sort();
+    order.forEach(function(g) {
+      var l = groups[g], c = l.reduce(function(a, p) { return a + p.cost; }, 0), late = l.filter(QUICK.overdue.test).length;
+      S._grp[S.table + '|' + g] = l;
+      html += cardShell('t:' + S.table + ':' + g, esc(g), l.length + ' row' + (l.length === 1 ? '' : 's') + (gb === 'hotel' && l[0].brand ? ' | ' + esc(l[0].brand) : ''),
+        (late ? '<span class="count bad">' + late + ' past date</span>' : '') + (c ? '<b>' + money(c) + '</b>' : ''),
+        '<div data-lazy="grp|' + esc(S.table + '|' + g) + '"></div>', order.length <= 6);
+    });
+    if (!order.length) html += '<div class="empty">No rows match these filters.</div>';
+  }
+  $('view').innerHTML = html;
+  Array.prototype.forEach.call(document.querySelectorAll('#view .card:not(.shut) [data-lazy]'), fillLazy);
+}
+function plainItem(p) {
+  var t = S.tables[p.sheet], v = p.row.v, bits = [];
+  for (var i = 0; i < t.cols.length && bits.length < 4; i++) if (String(v[i] || '') !== '' && i !== t._ix.project) bits.push(esc(t.cols[i].name) + ': ' + esc(t.cols[i].type === 'date' ? fmtDate(v[i]) : v[i]));
+  return '<div class="item" onclick="openProject(\'' + esc(p.sheet) + '\',' + p.r + ')"><div class="main"><div class="t1">' + esc(p.project || p.code || '(row ' + p.r + ')') + '</div><div class="t2">' + bits.join(' | ') + '</div></div>' + coupaBtns(p.links) + '</div>';
+}
+
+/* ---------- Hotels ---------- */
+function renderHotels() {
+  renderBar('');
+  var f = S.f, all = allMain();
+  var byHotel = {}; all.forEach(function(p) { (byHotel[p.code] = byHotel[p.code] || []).push(p); });
+  var hotels = (S.boot.hotels || []).filter(function(h) {
+    if (f.brand && h.brand !== f.brand) return false; if (f.fund && h.fund !== f.fund) return false; if (f.rvp && h.rvp !== f.rvp) return false; if (f.code && h.code !== f.code) return false;
+    var anyProjFilter = f.status || f.payment || f.vendor || f.category || S.quick;
+    if (anyProjFilter && !(byHotel[h.code] || []).length) return false;
+    if (f.q && (h.name + ' ' + h.code + ' ' + h.city + ' ' + h.gm + ' ' + h.brand).toLowerCase().indexOf(norm(f.q)) === -1 && !(byHotel[h.code] || []).length) return false;
+    return true;
+  });
+  var html = '<div class="hello" style="padding:12px 18px;"><b>Hotels</b> <span style="color:var(--muted)">| ' + hotels.length + ' of ' + (S.boot.hotels || []).length + ' | click a hotel to expand</span></div><div class="grid-hotels">';
+  hotels.forEach(function(h) {
+    var l = (byHotel[h.code] || []), open = l.filter(QUICK.open.test), late = l.filter(QUICK.overdue.test).length, c = open.reduce(function(a, p) { return a + p.cost; }, 0);
+    var k = 'h:' + h.code;
+    html += '<div>' + cardShell(k, esc(h.name || h.code), esc(sc(h.code)) + (h.brand ? ' | ' + esc(h.brand) : '') + (h.fund ? ' | ' + esc(h.fund) : ''),
+      '<span class="count">' + open.length + ' open</span>' + (late ? '<span class="count bad">' + late + ' late</span>' : ''),
+      '<div class="kv"><div class="k">General Manager</div><div class="v">' + esc(h.gm || '') + (h.gmEmail ? ' <a href="mailto:' + esc(h.gmEmail) + '">' + esc(h.gmEmail) + '</a>' : '') + '</div>' +
+      '<div class="k">Location</div><div class="v">' + esc([h.city, h.state].filter(String).join(', ')) + '</div><div class="k">RVP</div><div class="v">' + esc(h.rvp || '') + '</div>' +
+      '<div class="k">Open project cost</div><div class="v">' + money(c) + '</div></div>' +
+      '<div style="padding:0 16px 10px;display:flex;gap:6px;flex-wrap:wrap;"><button class="btn small" onclick="hotelDetail(\'' + esc(h.code) + '\')">Systems and contacts</button>' +
+      '<button class="btn small" onclick="S.f={code:\'' + esc(h.code) + '\'};go(\'table:Capex\')">All Capex</button><button class="btn small" onclick="S.f={code:\'' + esc(h.code) + '\'};go(\'table:Tech Projects Tracker\')">All Tech Projects</button><button class="btn small" onclick="S.f={code:\'' + esc(h.code) + '\'};go(\'table:QA Failures\')">QA Failures</button></div>' +
+      '<div class="sub-h">Projects</div><div data-lazy="hotel|' + esc(h.code) + '"></div>', !!S.f.code) + '</div>';
+  });
+  html += '</div>';
+  if (!hotels.length) html += '<div class="empty">No hotels match these filters.</div>';
+  $('view').innerHTML = html;
+  Array.prototype.forEach.call(document.querySelectorAll('#view .card:not(.shut) [data-lazy]'), fillLazy);
+}
+function hotelProjects(code) {
+  var l = allMain().filter(function(p) { return p.code === code; });
+  l.sort(function(a, b) { return (isDone(a) - isDone(b)) || ((a.date ? a.date.getTime() : 9e15) - (b.date ? b.date.getTime() : 9e15)); });
+  return listOrEmpty(l, 60);
+}
+function hotelDetail(code) {
+  var h = hotelMap()[code] || { code: code, name: code };
+  S.drawer = { mode: 'hotel', code: code, tab: 'systems' };
+  drawerOpen('<div class="dh"><div class="x">' + drawerBtns() + '</div><h3>' + esc(h.name) + '</h3><div class="sub">' + esc(code) + ' | ' + esc(h.brand || '') + ' | ' + esc(h.fund || '') + '</div></div>' +
+    '<div class="dtabs"><button class="dtab on" id="hdt1" onclick="hotelTab(1)">Systems and contacts</button><button class="dtab" id="hdt2" onclick="hotelTab(2)">Project Updates</button><button class="dtab" id="hdt3" onclick="hotelTab(3)">Brand QA</button></div>' +
+    '<div class="dbody" id="dbody"><div class="loading"><span class="spin"></span>Loading...</div></div>');
+  gs('ttHotelDetail', S.token, code).then(function(d) {
+    S.drawer.detail = d;
+    if (S.drawer && S.drawer.code === code) hotelTab(1);
+  }).catch(function(e) { $('dbody').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+}
+function hotelTab(n) {
+  $('hdt1').classList.toggle('on', n === 1); $('hdt2').classList.toggle('on', n === 2); if ($('hdt3')) $('hdt3').classList.toggle('on', n === 3);
+  var d = S.drawer.detail, code = S.drawer.code;
+  if (n === 3) return qaHotelTab(code);
+  if (n === 1) {
+    var block = function(title, rec) {
+      if (!rec) return '<div class="fgroup"><div class="gh2">' + title + '</div><div class="empty">No row for this hotel.</div></div>';
+      return '<div class="fgroup"><div class="gh2" onclick="this.parentNode.classList.toggle(\'shut\')">' + title + ' <button class="btn small" style="float:right" onclick="event.stopPropagation();openByRow(\'' + esc(rec.sheet) + '\',' + rec.r + ')">Edit</button></div><div class="kv">' +
+        rec.fields.map(function(f) { return '<div class="k">' + esc(f.name) + '</div><div class="v">' + (f.link ? '<a href="' + esc(f.link) + '" target="_blank">' + esc(f.value) + '</a>' : esc(/^\d{4}-\d{2}-\d{2}$/.test(String(f.value)) ? fmtDate(f.value) : f.value)) + '</div>'; }).join('') + '</div></div>';
+    };
+    $('dbody').innerHTML = d ? block('Technology Utilities (vendors and support)', d.utilities) + block('Property Master', d.master) : '<div class="loading"><span class="spin"></span>Loading...</div>';
+  } else {
+    $('dbody').innerHTML = '<div class="loading"><span class="spin"></span>Loading updates...</div>';
+    gs('ttHotelUpdates', S.token, code).then(function(list) { $('dbody').innerHTML = timeline(list, true); }).catch(function(e) { $('dbody').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+  }
+}
+/* ---------- Brand QA in the hotel panel (Nov 12 2026, C.Perry) ---------- */
+function qaHotelTab(code) {
+  var sheet = 'QA Failures';
+  $('dbody').innerHTML = '<div class="loading"><span class="spin"></span>Loading brand QA...</div>';
+  var load = S.tables[sheet] ? Promise.resolve() : gs('ttGetTables', S.token, [sheet], false).then(function(x) { S.tables[sheet] = x[sheet]; });
+  load.then(function() {
+    if (!S.drawer || S.drawer.code !== code) return;
+    var t = S.tables[sheet];
+    if (!t || t.missing) { $('dbody').innerHTML = '<div class="empty">No brand QA failures loaded yet.</div>'; return; }
+    var ci = function(n) { return findCol(t.cols, [n]); };
+    var iA = ci('Audit Date'), iT = ci('Tech Item'), iP = ci('Points Deducted'), iG = ci('Grade'), iS = ci('Standard'), iL = ci('Linked Project'), iQ = ci('QA Grade'), iO = ci('Overall Score'), iTy = ci('Audit Type');
+    var v = function(p, i) { return i === -1 ? '' : p.row.v[i]; };
+    var list = t.rows.map(function(r) { return P(sheet, r); }).filter(function(p) { return p && p.code === code; });
+    if (!list.length) { $('dbody').innerHTML = '<div class="empty">No brand QA failures loaded for this hotel.</div>'; return; }
+    var audits = {}, order = [];
+    list.forEach(function(p) { var a = String(v(p, iA)); if (!audits[a]) { audits[a] = []; order.push(a); } audits[a].push(p); });
+    order.sort(function(a, b) { return (toDate(b) || 0) - (toDate(a) || 0); });
+    $('dbody').innerHTML = order.map(function(a, ai) {
+      var l = audits[a], f = l[0];
+      l.sort(function(x, y) { return ((v(y, iT) === 'Yes') - (v(x, iT) === 'Yes')) || (num(v(y, iP)) - num(v(x, iP))); });
+      var tech = l.filter(function(p) { return v(p, iT) === 'Yes'; }).length;
+      return '<div class="fgroup' + (ai ? ' shut' : '') + '"><div class="gh2" onclick="this.parentNode.classList.toggle(\'shut\')">' + esc(fmtDate(a)) + ' ' + esc(v(f, iTy)) + ' | ' + esc(v(f, iQ)) + ' ' + esc(v(f, iO)) + ' | ' + l.length + ' items, ' + tech + ' tech</div>' +
+        l.map(function(p) {
+          return '<div class="item" onclick="openByRow(\'' + esc(sheet) + '\',' + p.r + ')"><div class="main"><div class="t1">' + esc(p.project) + '</div><div class="t2">' + esc(v(p, iS)) + ' | Grade ' + esc(v(p, iG) || '-') + ' | ' + esc(v(p, iP)) + ' pts' + (v(p, iL) ? ' | ' + esc(v(p, iL)) : '') + '</div></div>' +
+            pill(v(p, iT) === 'Yes' ? p.category : '') + ' ' + pill(p.status) + '</div>';
+        }).join('') + '</div>';
+    }).join('') + '<div style="padding:8px 0;"><button class="btn small" onclick="closeDrawer();S.f={code:\'' + esc(code) + '\'};go(\'table:QA Failures\')">Open in QA Failures</button></div>';
+  }).catch(function(e) { $('dbody').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+}
+function openByRow(sheet, r) {
+  var load = S.tables[sheet] ? Promise.resolve() : gs('ttGetTables', S.token, [sheet], false).then(function(x) { S.tables[sheet] = x[sheet]; });
+  load.then(function() { openProject(sheet, r); });
+}
+
+/* ---------- Reports ---------- */
+function renderReport() {
+  var rep = S.reports[S.report], meta = (S.boot.reports || []).filter(function(r) { return r.name === S.report; })[0] || { label: S.report };
+  renderBar('');
+  if (!rep) { $('view').innerHTML = '<div class="conf">That report did not load.</div>'; return; }
+  var rows = (rep.rows || []).map(repRow).filter(passes);
+  var total = rows.reduce(function(a, p) { return a + p.cost; }, 0);
+  var groups = {}, order = [];
+  rows.forEach(function(p) { var g = p.hotel + ' (' + sc(p.code) + ')'; if (!groups[g]) { groups[g] = []; order.push(g); } groups[g].push(p); });
+  order.sort();
+  var html = '<div class="hello" style="padding:12px 18px;"><b>' + esc(meta.label) + '</b> <span style="color:var(--muted)">| ' + rows.length + ' rows | ' + money(total) + ' | as of ' + esc(rep.asOf) + '</span></div>';
+  S._grp = {};
+  order.forEach(function(g) {
+    var l = groups[g]; S._grp['rep|' + g] = l;
+    html += cardShell('r:' + S.report + ':' + g, esc(g), l.length + ' item' + (l.length === 1 ? '' : 's'), '<b>' + money(l.reduce(function(a, p) { return a + p.cost; }, 0)) + '</b>',
+      l.map(function(p) {
+        return '<div class="item"' + (p.sheet ? ' onclick="openByKey(\'' + esc(p.sheet) + '\',\'' + esc(p.code) + '\',\'' + esc(p.project.replace(/'/g, '')) + '\')"' : '') + '><div class="main"><div class="t1">' + esc(p.project || p.vendor) + '</div><div class="t2">' + esc(p.extra) + '</div></div>' + pill(p.status) + ' ' + pill(p.payment) + ' ' + pill(p.stage) + ' ' + coupaBtns(p.links) + '<div class="amt">' + (p.cost ? money(p.cost) : '') + '</div></div>';
+      }).join(''), order.length <= 8);
+  });
+  if (!order.length) html += '<div class="empty">Nothing on this report for these filters.</div>';
+  $('view').innerHTML = html;
+}
+function repRow(o) {
+  var g = function(keys) { for (var i = 0; i < keys.length; i++) { for (var k in o) if (norm(k) === norm(keys[i]) && o[k] !== '' && o[k] !== null && o[k] !== undefined) return o[k]; } return ''; };
+  var code = String(g(['hotelCode', 'code', 'Hotel Code'])).toUpperCase(), h = hotelMap()[code] || {};
+  var links = [];
+  if (o.link) links.push({ label: 'Coupa', url: typeof o.link === 'string' ? o.link : o.link.url });
+  (o.links || []).forEach(function(l) { if (l && l.url) links.push({ label: l.label || 'Coupa', url: l.url }); });
+  var used = ['hotelcode', 'code', 'hotelname', 'hotel', 'project', 'vendor', 'cost', 'amount', 'paymentstatus', 'status', 'link', 'links', 'sheet', 'source'];
+  var extra = Object.keys(o).filter(function(k) { return used.indexOf(norm(k).replace(/\s/g, '')) === -1 && o[k] !== '' && o[k] !== null && typeof o[k] !== 'object'; })
+    .map(function(k) { var v = o[k]; return k.replace(/([A-Z])/g, ' $1').replace(/^./, function(c) { return c.toUpperCase(); }) + ': ' + (/^\d{4}-\d{2}-\d{2}/.test(String(v)) ? fmtDate(String(v).slice(0, 10)) : v); }).join(' | ');
+  var src = String(g(['sheet', 'source']));
+  return { code: code, hotel: g(['hotelName', 'hotel', 'Hotel Name']) || h.name || code, project: String(g(['project', 'Project'])), vendor: String(g(['vendor'])), brand: h.brand || g(['brand']), fund: g(['fund']) || h.fund, rvp: h.rvp || '',
+    category: String(g(['category'])), cost: num(g(['cost', 'amount', 'total'])), status: String(g(['status', 'projectStatus'])), payment: String(g(['paymentStatus'])), date: toDate(g(['week', 'dateDue', 'date'])),
+    links: links, extra: extra, sheet: /tech/i.test(src) ? 'Tech Projects Tracker' : (/capex/i.test(src) ? 'Capex' : ''), raw: o };
+}
+
+/* ---------- Tools ---------- */
+function renderLoaders() {
+  renderBar('');
+  $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading Loader Hub...</div>';
+  gs('ttLoaders', S.token).then(function(res) {
+    if (res.missing) { $('view').innerHTML = '<div class="conf">Loader Hub is not installed in Capex Workflow yet.</div>'; return; }
+    var html = '<div class="hello" style="padding:12px 18px;"><b>Loader Hub</b> <span style="color:var(--muted)">| same loaders as Tech Projects > Loader Hub | ' + esc(res.asOf || '') + '</span>' +
+      '<div style="margin-top:6px;font-size:13px;color:var(--muted)">Each loader shows its steps below. Missing a loader you just pasted? The app runs the last deployed version: Apps Script &gt; Deploy &gt; Manage deployments &gt; pencil on the web app &gt; New version &gt; Deploy, then Refresh.</div></div>';
+    (res.loaders || []).forEach(function(L) {
+      var st = L.status || (L.applied ? 'Applied' : 'Waiting to run');
+      html += cardShell('ld:' + L.id, esc(L.name), esc(L.description || ''), pill(st) + '<button class="btn small" onclick="runLoader(\'' + esc(L.id) + '\',\'Preview\')">Preview</button><span id="lh-ap-' + esc(L.id) + '">' + loaderApplyBtn(L.id) + '</span>',
+        '<div class="kv"><div class="k">Batch</div><div class="v">' + esc(L.batch || '') + '</div><div class="k">Items</div><div class="v">' + esc(L.items || '') + '</div><div class="k">Last run</div><div class="v">' + esc(L.lastRun || L.last || '') + '</div></div>' +
+        ((L.steps && L.steps.length) ? '<div style="margin:10px 0 4px;font-weight:600">Steps</div><ol style="margin:0 0 6px;padding-left:20px;line-height:1.5">' + L.steps.filter(function(s) { return !/^Make it show in the TechTrack app/.test(s); }).map(function(s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>' : '') +
+        (S.loaderOut[L.id] ? '<div class="loader-out">' + S.loaderOut[L.id] + '</div>' : ''), !!S.loaderOut[L.id] || st !== 'Applied');
+    });
+    if (!(res.loaders || []).length) html += '<div class="empty">No loaders are registered.</div>';
+    $('view').innerHTML = html;
+  }).catch(function(e) { $('view').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+}
+// On-page two-step confirm for Apply. Resets after 30 seconds with no click.
+var LOADER_T = {};
+function loaderApplyBtn(id) { return '<button class="btn small primary" id="lh-apply-' + esc(id) + '" onclick="askLoader(\'' + esc(id) + '\')">Apply</button>'; }
+function askLoader(id) {
+  var host = $('lh-ap-' + id); if (!host) return;
+  host.innerHTML = '<span style="font-family:Calibri,Arial,sans-serif;font-size:13px;margin-right:4px">Apply writes to TechTrack. Confirm?</span>' +
+    '<button class="btn small" id="lh-confirm-' + esc(id) + '" style="background:#224061;border-color:#224061;color:#fff" onclick="yesLoader(\'' + esc(id) + '\')">Yes, apply</button>' +
+    '<button class="btn small" id="lh-cancel-' + esc(id) + '" onclick="cancelLoader(\'' + esc(id) + '\')">Cancel</button>';
+  clearTimeout(LOADER_T[id]);
+  LOADER_T[id] = setTimeout(function() { cancelLoader(id); }, 30000);
+}
+function cancelLoader(id) {
+  clearTimeout(LOADER_T[id]); delete LOADER_T[id];
+  var host = $('lh-ap-' + id); if (host) host.innerHTML = loaderApplyBtn(id);
+}
+function yesLoader(id) { cancelLoader(id); runLoader(id, 'Apply'); }
+function runLoader(id, mode) {
+  toast(mode + ' running...');
+  gs('ttRunLoader', S.token, id, mode).then(function(out) {
+    S.loaderOut[id] = (out && (out.html || ('<pre>' + esc(out.text || JSON.stringify(out)) + '</pre>'))) || 'Done.';
+    S.open['ld:' + id] = true; toast(mode + ' finished'); if (mode === 'Apply') { S.tables = {}; } renderLoaders();
+  }).catch(function(e) { toast(e.message, true); });
+}
+function renderLegacy() {
+  renderBar('');
+  if (S.legacyOpen) {
+    $('view').innerHTML = '<div class="hello" style="padding:10px 16px;display:flex;align-items:center;gap:10px;"><button class="btn small" onclick="S.legacyOpen=null;render()">&#8592; Back</button><b>' + esc(S.legacyOpen.label) +
+      '</b><span style="color:var(--muted);font-size:13px;">Older dashboard in the app look. Use Back to return.</span><a class="btn small" style="margin-left:auto;text-decoration:none" target="_blank" href="' + esc(legacyUrl(S.legacyOpen.file)) + '">Open in new tab</a></div>' +
+      '<iframe class="frame" src="' + esc(legacyUrl(S.legacyOpen.file)) + '"></iframe>';
+    return;
+  }
+  var q = norm(S.f.q), html = '<div class="hello" style="padding:12px 18px;"><b>All Dashboards</b> <span style="color:var(--muted)">| every older TechTrack dialog, opened inside the app</span></div>';
+  (S.boot.legacy || []).forEach(function(cat) {
+    var items = cat.items.filter(function(i) { return !q || norm(i.label).indexOf(q) !== -1; });
+    if (!items.length) return;
+    html += cardShell('lg:' + cat.category, esc(cat.category), '', '<span class="count">' + items.length + '</span>', items.map(function(i) {
+      return '<div class="item" onclick="S.legacyOpen={file:\'' + esc(i.file) + '\',label:\'' + esc(i.label.replace(/'/g, '')) + '\'};render()"><div class="main"><div class="t1">' + esc(i.label) + '</div></div><span class="pill n">Open</span></div>';
+    }).join(''), !!q);
+  });
+  $('view').innerHTML = html;
+}
+window.addEventListener('message', function(ev) { if (ev.data === 'tt-legacy-close' && S.legacyOpen) { S.legacyOpen = null; render(); } });
+function legacyUrl(file) { return BOOT.webAppUrl + '?view=' + encodeURIComponent(file) + '&t=' + encodeURIComponent(S.token); }
+function renderLinks() {
+  renderBar('');
+  var u = BOOT.webAppUrl, link = function(label, url, note) { return '<div class="item" onclick="window.open(\'' + esc(url) + '\',\'_blank\')"><div class="main"><div class="t1">' + esc(label) + '</div><div class="t2">' + esc(note) + '</div></div><span class="pill b">Open &#8599;</span></div>'; };
+  $('view').innerHTML = cardShell('links', 'Links and Forms', '', '', link('TechTrack Vendor Portal', BOOT.vendorPortalUrl, 'Vendors sign in here. Admin page for invites and resets.') +
+    link('Update This Project form', u + '?page=update', 'Public form hotels and vendors use from the Hotel Projects email.') +
+    link('TechTrack Mobile', u + '?page=app', 'Phone version.') + link('Property Compliance Dashboard', u + '?page=compliance', 'Compliance by property.') +
+    link('TechTrack Google Sheet', 'https://docs.google.com/spreadsheets/d/1ucHzO7fBdEGjIZD3EOb2AjSNA_zB5DpcY-CWZsTTOkM/edit', 'Only if you really need the sheet.'), true);
+}
+
+/* ===================== GLOBAL SEARCH ===================== */
+var gTimer;
+function globalSearch() {
+  clearTimeout(gTimer);
+  gTimer = setTimeout(function() {
+    var q = norm($('gq').value), box = $('gres');
+    if (q.length < 2) { box.classList.add('hidden'); return; }
+    var out = [];
+    (S.boot.hotels || []).forEach(function(h) { if ((h.code + ' ' + h.name + ' ' + h.city + ' ' + h.gm).toLowerCase().indexOf(q) !== -1) out.push('<div class="item" onclick="gpick();hotelDetail(\'' + esc(h.code) + '\')"><b>' + esc(h.name) + '</b> <span class="sub">' + esc(h.code) + ' | Hotel</span></div>'); });
+    Object.keys(S.tables).forEach(function(s) {
+      var t = S.tables[s]; if (!t.rows) return;
+      t.rows.forEach(function(r) { if (out.length > 60) return; var p = P(s, r); if ((p.code + ' ' + p.hotel + ' ' + p.project + ' ' + p.vendor).toLowerCase().indexOf(q) !== -1) out.push('<div class="item" onclick="gpick();openProject(\'' + esc(s) + '\',' + r.r + ')"><b>' + esc(p.project || p.code) + '</b><div class="sub">' + esc(p.hotel) + ' | ' + esc(tableDef(s).label) + (p.vendor ? ' | ' + esc(p.vendor) : '') + '</div></div>'); });
+    });
+    box.innerHTML = out.slice(0, 60).join('') || '<div class="item sub">No matches in the tabs loaded so far.</div>';
+    box.classList.remove('hidden');
+  }, 180);
+}
+function gpick() { $('gres').classList.add('hidden'); }
+document.addEventListener('click', function(e) { if (!e.target.closest('.gsearch')) gpick(); });
+
+/* ===================== DRAWER: PROJECT ===================== */
+var GROUPS = [
+  { title: 'Project', re: /hotel code|hotel name|^hotel$|project|category|brand|fund|^week$|priority|scope|description|type/i },
+  { title: 'Vendor and dates', re: /vendor|date|schedul|install|start|end|complet|week|contact|tentative|cycle/i },
+  { title: 'Money and Coupa', re: /cost|amount|total|price|deposit|budget|coupa|requisition|invoice|payment|po\b|committee|approv|paid|\$/i },
+  { title: 'Notes', re: /note|comment|update|reason|status/i }
+];
+function dirtyCount() {
+  var d = S.drawer; if (!d) return 0;
+  return Object.keys(d.changes || {}).length + Object.keys(d.ticks || {}).length + (d.mode === 'new' ? Object.keys(d.values || {}).filter(function(k) { return String(d.values[k]) !== ''; }).length : 0);
+}
+function drawerBtns() { return '<button class="btn small" title="Wider" onclick="$(\'drawer\').classList.toggle(\'max\')">&#8596;</button><button class="btn small" onclick="closeDrawer()">Close</button>'; }
+function drawerOpen(html) { var d = $('drawer'); d.innerHTML = html; d.classList.add('open'); }
+function closeDrawer(force) {
+  if (!force && dirtyCount() && !confirm('You have unsaved changes. Close without saving?')) return false;
+  S.drawer = null; $('drawer').classList.remove('open'); return true;
+}
+function openProject(sheet, r) {
+  if (S.drawer && dirtyCount() && !closeDrawer()) return;
+  var t = S.tables[sheet]; if (!t) return openByRow(sheet, r);
+  var row = t.rows.filter(function(x) { return x.r === r; })[0];
+  if (!row) return toast('That row is no longer loaded. Click Refresh.', true);
+  var p = P(sheet, row);
+  S.drawer = { mode: 'edit', sheet: sheet, r: r, row: row, p: p, changes: {}, ticks: {}, tab: S.lastTab || 'details' };
+  drawDrawer();
+}
+function openNew() {
+  if (S.drawer && dirtyCount() && !closeDrawer()) return;
+  var def = tableDef(S.table);
+  S.drawer = { mode: 'new', sheet: S.table, values: {}, tab: 'details' };
+  if (S.f.code) S.drawer.values['Hotel Code'] = sc(S.f.code);
+  drawDrawer();
+  if (S.f.code) lookupHotel(S.f.code);
+}
+function drawDrawer() {
+  var d = S.drawer, def = tableDef(d.sheet), t = S.tables[d.sheet];
+  var head;
+  if (d.mode === 'new') {
+    head = '<div class="dh"><div class="x">' + drawerBtns() + '</div><h3>New row on ' + esc(def.label) + '</h3><div class="sub">Fill what you know. Formula columns fill themselves.</div></div>';
+  } else {
+    var p = d.p;
+    head = '<div class="dh"><div class="x">' + drawerBtns() + '</div><h3>' + esc(p.project || p.code) + '</h3><div class="sub">' + esc(p.hotel) + ' (' + esc(p.code) + ') | ' + esc(def.label) + ' | row ' + d.r + '</div>' +
+      '<div class="pills">' + pill(p.status) + pill(p.payment) + pill(p.stage) + (p.cost ? '<span class="pill b">' + money(p.cost) + '</span>' : '') + coupaBtns(p.links) + '</div>' + pmLineHtml(p) + '</div>';
+  }
+  var tabs = d.mode === 'new' ? '' : '<div class="dtabs"><button class="dtab' + (d.tab === 'details' ? ' on' : '') + '" onclick="dTab(\'details\')">Details</button>' +
+    '<button class="dtab' + (d.tab === 'updates' ? ' on' : '') + '" onclick="dTab(\'updates\')">Project Updates</button>' +
+    /* INVLINK_1111 // Chris Perry */ (window.ttInvTabOk && ttInvTabOk(d) ? '<button class="dtab' + (d.tab === 'vinv' ? ' on' : '') + '" onclick="dTab(\'vinv\')">Vendor invoices</button>' : '') +
+    (/^(Capex|Archived Capex|Capex Committee|Tech Projects Tracker|Remaining Balance|Tech Projects Archive|Uniguest Business Center|Future Capex|Secured Quotes)$/.test(d.sheet) ? '<button class="dtab' + (d.tab === 'checklist' ? ' on' : '') + '" onclick="dTab(\'checklist\')">Checklist</button>' : '') + '</div>';
+  var bar = '<div class="savebar"><span class="st" id="dst">No changes</span>' + (def.edit ? '<button class="btn" onclick="discard()">Discard</button><button class="btn accent" id="saveBtn" onclick="saveDrawer()">Save</button>' : '<span class="st">View only</span>') + '</div>';
+  drawerOpen(head + tabs + '<div class="dbody" id="dbody"></div>' + bar);
+  dTab(d.tab);
+}
+function dTab(tab) {
+  var d = S.drawer; d.tab = tab; if (d.mode === 'edit') S.lastTab = tab;
+  Array.prototype.forEach.call(document.querySelectorAll('.dtab'), function(b) { b.classList.toggle('on', b.getAttribute('onclick').indexOf("'" + tab + "'") !== -1); });
+  if (tab === 'details') drawFields();
+  if (tab === 'updates') drawUpdates();
+  if (tab === 'checklist') drawChecklist();
+  if (tab === 'vinv') { if (window.ttInvDrawer) ttInvDrawer(); }  // INVLINK_1111
+  updDirty();
+}
+function drawFields() {
+  var d = S.drawer, def = tableDef(d.sheet), t = S.tables[d.sheet], lists = S.boot.lists || {};
+  var buckets = GROUPS.map(function(g) { return { title: g.title, items: [] }; }); buckets.push({ title: 'Everything else', items: [] });
+  t.cols.forEach(function(c, i) {
+    var gi = GROUPS.length;
+    if (isHardyCol(c.name)) { if (d.mode !== 'new') buckets[1].items.unshift(i); return; }  // Hardy Group (Nov 11 2026): top of Vendor and dates
+    for (var k = 0; k < GROUPS.length; k++) if (GROUPS[k].re.test(c.name)) { gi = k; break; }
+    buckets[gi].items.push(i);
+  });
+  var distinct = function(i) { var s = {}; t.rows.forEach(function(r) { var v = r.v[i]; if (v !== '' && v !== null && v !== undefined) s[v] = 1; }); return Object.keys(s); };
+  var html = d.conflicts && d.conflicts.length ? '<div class="conf"><b>Some changes were not saved:</b><br>' + d.conflicts.map(function(c) { return esc(c.msg); }).join('<br>') + '</div>' : '';
+  buckets.forEach(function(b, bi) {
+    if (!b.items.length) return;
+    html += '<div class="fgroup' + (bi >= 4 && d.mode === 'edit' ? ' shut' : '') + '"><div class="gh2" onclick="this.parentNode.classList.toggle(\'shut\')">' + b.title + '</div><div class="fg">';
+    b.items.forEach(function(i) {
+      var c = t.cols[i], id = 'fx' + i;
+      var cur = d.mode === 'new' ? (d.values[c.name] !== undefined ? d.values[c.name] : '') : (d.changes[c.name] ? d.changes[c.name].to : d.row.v[i]);
+      var link = d.mode === 'new' ? '' : (d.changes[c.name] && d.changes[c.name].linkTo !== undefined ? d.changes[c.name].linkTo : (d.row.l && d.row.l[i]) || '');
+      var dirty = d.mode === 'new' ? String(cur) !== '' : !!d.changes[c.name];
+      var wide = /note|comment|description|scope|update|reason/i.test(c.name) || String(cur).length > 60;
+      var lab = '<label><span>' + esc(c.name) + '</span>' + (c.formula ? '<span>formula</span>' : '') + '</label>';
+      var input;
+      if (isHardyCol(c.name)) {
+        html += hardyFieldHtml(i, cur);
+        return;
+      }
+      if (c.formula || !def.edit) {
+        input = '<div class="ro">' + (link ? '<a href="' + esc(link) + '" target="_blank">' + esc(cur || link) + '</a>' : esc(c.type === 'date' ? fmtDate(cur) : (c.money ? money(cur) : cur))) + '</div>';
+      } else if (c.type === 'date') {
+        input = '<input type="date" id="' + id + '" value="' + esc(/^\d{4}-\d{2}-\d{2}$/.test(String(cur)) ? cur : '') + '" onchange="fchg(' + i + ', this.value)">';
+      } else if (c.list && (lists[c.list] || []).length) {
+        var opts = (lists[c.list] || []).slice(); if (cur && opts.indexOf(String(cur)) === -1) opts.unshift(String(cur));
+        input = '<select id="' + id + '" onchange="fchg(' + i + ', this.value)"><option value=""></option>' + opts.map(function(o) { return '<option' + (String(o) === String(cur) ? ' selected' : '') + '>' + esc(o) + '</option>'; }).join('') + '</select>';
+      } else if (wide) {
+        input = '<textarea id="' + id + '" rows="3" oninput="fchg(' + i + ', this.value)">' + esc(cur) + '</textarea>';
+      } else {
+        var dl = '';
+        if (c.type !== 'number') { var dv = distinct(i); if (dv.length && dv.length <= 40) dl = '<datalist id="dl' + i + '">' + dv.map(function(o) { return '<option value="' + esc(o) + '">'; }).join('') + '</datalist>'; }
+        input = '<input id="' + id + '"' + (dl ? ' list="dl' + i + '"' : '') + ' value="' + esc(cur) + '" oninput="fchg(' + i + ', this.value)"' + (c.name === 'Hotel Code' && d.mode === 'new' ? ' onchange="lookupHotel(this.value)" style="text-transform:uppercase"' : '') + '>' + dl;
+      }
+      var linkUi = '';
+      if (!c.formula && def.edit && d.mode === 'edit' && (link || /coupa|link|requisition|url/i.test(c.name))) {
+        linkUi = '<div class="lnk">' + (link ? '<a href="' + esc(link) + '" target="_blank">Open link &#8599;</a> ' : '') + '<input style="margin-top:4px;font-size:12px;padding:4px 7px;" placeholder="Link URL (https://...)" value="' + esc(link) + '" oninput="lchg(' + i + ', this.value)"></div>';
+      }
+      html += '<div class="fld' + (wide ? ' wide' : '') + (dirty ? ' dirty' : '') + '" id="w' + i + '">' + lab + input + linkUi + '</div>';
+    });
+    html += '</div></div>';
+  });
+  $('dbody').innerHTML = html;
+}
+/* ---------- Hardy Group access (Nov 11 2026) ----------
+   One checkbox per project. Admins only. Saves at once (not with Save) because it
+   ticks the same job on Tech Projects Tracker, Capex, Archived Capex, Remaining
+   Balance and Tech Projects Archive. The Vendor Portal shows the job to Hardy Group
+   logins within 10 minutes (or at once with Refresh data there). */
+function isHardyCol(name) { return /^hardy group access$/i.test(String(name || '').trim()); }
+function hardyOn(v) { return v === true || /^(yes|y|x|true|1|checked)$/i.test(String(v === null || v === undefined ? '' : v).trim()); }
+function hardyIsAdmin() { return !!(S.boot && S.boot.access && S.boot.access.admin); }
+function hardyFieldHtml(i, cur) {
+  var on = hardyOn(cur);
+  var body = hardyIsAdmin()
+    ? '<label style="display:flex;gap:8px;align-items:center;cursor:pointer;"><input type="checkbox" id="hardyBox"' + (on ? ' checked' : '') + ' onchange="hardyTick(' + i + ', this)"><span>Hardy Group can see this job in the Vendor Portal</span></label>' +
+      '<div style="color:var(--muted);font-size:12px;margin-top:4px;">Saves right away on every tab this job is on. No links, notes or uploads to MCR for Hardy.</div>'
+    : '<div class="ro">' + (on ? 'Yes, Hardy Group can see this job' : 'No') + '</div>';
+  return '<div class="fld wide" id="w' + i + '"><label><span>Hardy Group access</span></label>' + body + '</div>';
+}
+function hardyTick(i, box) {
+  var d = S.drawer; if (!d || d.mode === 'new') return;
+  var on = !!box.checked; box.disabled = true;
+  var t = S.tables[d.sheet], vi = findCol(t.cols, ['Vendor']);
+  var vendor = vi === -1 ? '' : String(d.row.v[vi] || '');
+  gs('ttHardySet', S.token, d.sheet, d.p.code, d.p.project, vendor, on).then(function(res) {
+    (res.wrote || []).forEach(function(w) {
+      var tt = S.tables[w.sheet]; if (!tt) return;
+      var ci = findCol(tt.cols, [w.col]); if (ci === -1) return;
+      tt.rows.forEach(function(row) { if (w.rows.indexOf(row.r) !== -1) row.v[ci] = on ? 'Yes' : ''; });
+    });
+    box.disabled = false; toast(res.msg || 'Saved');
+  }).catch(function(e) { box.disabled = false; box.checked = !on; toast(e.message, true); });
+}
+function hardyEnsure() {
+  if (!hardyIsAdmin() || S._hardyEnsured) return;
+  S._hardyEnsured = true;
+  gs('ttHardyEnsure', S.token).then(function(res) {
+    if (!res || !res.ran) return;
+    return gs('ttGetTables', S.token, Object.keys(S.tables), true).then(function(t) { Object.keys(t).forEach(function(k) { S.tables[k] = t[k]; }); snapSave(); toast('Hardy Group Access column added'); });
+  }).catch(function() { S._hardyEnsured = false; });
+}
+function fchg(i, val) {
+  var d = S.drawer, c = S.tables[d.sheet].cols[i];
+  if (d.mode === 'new') { d.values[c.name] = val; $('w' + i).classList.toggle('dirty', String(val) !== ''); if (c.name === 'Hotel Code') lookupHotel(val); updDirty(); return; }
+  var orig = d.row.v[i]; var ch = d.changes[c.name] || { from: orig };
+  ch.to = val;
+  if (String(val) === String(orig === null || orig === undefined ? '' : orig) && (ch.linkTo === undefined || ch.linkTo === ch.linkFrom)) delete d.changes[c.name]; else d.changes[c.name] = ch;
+  $('w' + i).classList.toggle('dirty', !!d.changes[c.name]); updDirty();
+}
+function lchg(i, url) {
+  var d = S.drawer, c = S.tables[d.sheet].cols[i], orig = (d.row.l && d.row.l[i]) || '';
+  var ch = d.changes[c.name] || { from: d.row.v[i], to: d.row.v[i] };
+  ch.linkFrom = orig; ch.linkTo = url;
+  if (url === orig && String(ch.to) === String(ch.from)) delete d.changes[c.name]; else d.changes[c.name] = ch;
+  $('w' + i).classList.toggle('dirty', !!d.changes[c.name]); updDirty();
+}
+function updDirty() {
+  var n = dirtyCount(), el = $('dst'); if (!el) return;
+  el.textContent = n ? n + ' unsaved change' + (n === 1 ? '' : 's') : 'No changes'; el.classList.toggle('d', !!n);
+}
+function lookupHotel(code) {
+  code = String(code || '').trim().toUpperCase(); var h = hotelMap()[code], d = S.drawer, t = S.tables[d.sheet];
+  if (!h) return;
+  d.values['Hotel Code'] = h.shown || code;
+  [['Hotel Name', h.name], ['Brand', h.brand], ['Fund', h.fund]].forEach(function(x) {
+    var i = findCol(t.cols, [x[0]]); if (i === -1 || t.cols[i].formula || !x[1]) return;
+    d.values[t.cols[i].name] = x[1]; var el = $('fx' + i); if (el) { el.value = x[1]; $('w' + i).classList.add('dirty'); }
+  });
+  var ci = findCol(t.cols, ['Hotel Code']); if (ci !== -1 && $('fx' + ci)) $('fx' + ci).value = h.shown || code;
+  updDirty();
+}
+function discard() {
+  var d = S.drawer; if (!d) return;
+  if (d.mode === 'new') d.values = {}; else { d.changes = {}; d.ticks = {}; }
+  d.conflicts = []; dTab(d.tab);
+}
+function saveDrawer() {
+  var d = S.drawer; if (!d || !dirtyCount()) return toast('Nothing to save');
+  var btn = $('saveBtn'); btn.disabled = true; btn.textContent = 'Saving...';
+  var jobs = [];
+  if (d.mode === 'new') {
+    var t = S.tables[d.sheet], def = tableDef(d.sheet);
+    var pc = findCol(t.cols, def.project);
+    if (pc !== -1 && !String(d.values[t.cols[pc].name] || '').trim()) { btn.disabled = false; btn.textContent = 'Save'; return toast(t.cols[pc].name + ' is required.', true); }
+    jobs.push(gs('ttSave', S.token, d.sheet, [], [{ values: d.values }]));
+  } else {
+    if (Object.keys(d.changes).length) jobs.push(gs('ttSave', S.token, d.sheet, [{ r: d.r, code: d.p.code, project: d.p.project, changes: d.changes }], []));
+    var ticks = Object.keys(d.ticks).map(function(k) { return d.ticks[k]; });
+    if (ticks.length) jobs.push(gs('ttSaveChecklist', S.token, d.p.code, d.p.hotel, d.p.project, ticks).then(function() { return { ticks: true }; }));
+  }
+  Promise.all(jobs).then(function(res) {
+    var conflicts = [];
+    res.forEach(function(x) { if (x && x.rows) { patchRows(d.sheet, x.rows); conflicts = conflicts.concat(x.conflicts || []); } if (x && x.automationId) runSaveAutomations(d.sheet, x.automationId); });
+    btn.disabled = false; btn.textContent = 'Save';
+    if (d.mode === 'new') {
+      var added = res[0] && res[0].rows && res[0].rows.rows && res[0].rows.rows[0];
+      toast('Saved'); render();
+      if (added) { S.drawer = null; openProject(d.sheet, added.r); } else closeDrawer(true);
+      return;
+    }
+    var nr = S.tables[d.sheet].rows.filter(function(x) { return x.r === d.r; })[0];
+    if (!nr) { var moved = res[0] && res[0].rows && res[0].rows.rows && res[0].rows.rows[0]; if (moved) { d.r = moved.r; nr = moved; } }
+    d.changes = {}; d.ticks = {}; d.conflicts = conflicts;
+    if (nr) { d.row = nr; d.p = P(d.sheet, nr); }
+    toast(conflicts.length ? 'Saved, with ' + conflicts.length + ' item(s) skipped' : 'Saved', !!conflicts.length);
+    drawDrawer(); renderKeepScroll();
+  }).catch(function(e) { btn.disabled = false; btn.textContent = 'Save'; toast(e.message, true); });
+}
+/* Sheet workflow automations run once per Save, in the background, after
+   Save has already confirmed. Typing in a box never touches the sheet. */
+function runSaveAutomations(sheet, id) {
+  S.autoBusy = (S.autoBusy || 0) + 1; showAutoChip();
+  gs('ttRunSaveAutomations', S.token, id).then(function(a) {
+    S.autoBusy--; showAutoChip();
+    if (!a) return;
+    if (a.table) {
+      patchRows(sheet, { all: a.table.rows, cols: a.table.cols });
+      var d = S.drawer;
+      if (d && d.sheet === sheet && d.mode !== 'new' && !dirtyCount()) {
+        var key = String(d.p.code || '').toUpperCase() + '|' + String(d.p.project || '').toUpperCase();
+        var nr = a.table.rows.filter(function(x) { var q = P(sheet, x); return String(q.code || '').toUpperCase() + '|' + String(q.project || '').toUpperCase() === key; })[0];
+        if (nr) { d.r = nr.r; d.row = nr; d.p = P(sheet, nr); drawDrawer(); }
+      }
+      renderKeepScroll();
+    }
+    var msgs = [];
+    if (a.ran) msgs.push('Sheet automations ran (' + a.ran + ')');
+    (a.notes || []).forEach(function(n) { msgs.push(n); });
+    if (msgs.length) toast(msgs.join('. '));
+    if ((a.errors || []).length && a.ok) toast('Automation note: ' + a.errors[0], true);
+    if ((a.checklists || []).length && typeof openChecklistFor === 'function') openChecklistFor(a.checklists[0]);
+  }).catch(function(e) { S.autoBusy--; showAutoChip(); toast('Saved. Automations could not run: ' + e.message, true); });
+}
+function showAutoChip() {
+  var el = $('autoChip');
+  if (!el) { el = document.createElement('div'); el.id = 'autoChip'; el.style.cssText = 'position:fixed;left:16px;bottom:16px;z-index:60;background:#13294B;color:#fff;border:1px solid #2E5A88;border-radius:18px;padding:6px 12px;font-size:12px;display:none'; el.innerHTML = '<span class="spin"></span> Running sheet automations...'; document.body.appendChild(el); }
+  el.style.display = S.autoBusy > 0 ? 'block' : 'none';
+}
+function patchRows(sheet, payload) {
+  var t = S.tables[sheet]; if (!t || !payload) return;
+  if (payload.all) { t.rows = payload.all; } else {
+    (payload.rows || []).forEach(function(nr) {
+      var i = -1; for (var k = 0; k < t.rows.length; k++) if (t.rows[k].r === nr.r) { i = k; break; }
+      if (i === -1) t.rows.push(nr); else t.rows[i] = nr;
+    });
+  }
+  if (payload.cols) { t.cols = payload.cols; t._ix = null; }
+  t.asOf = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+function renderKeepScroll() { var y = window.scrollY; render(); window.scrollTo(0, y); }
+
+/* ---------- Updates timeline ---------- */
+function drawUpdates() {
+  var d = S.drawer;
+  $('dbody').innerHTML = '<div class="fgroup"><div class="gh2">Add a Project Update</div><div style="padding:4px 14px 14px;"><textarea id="newUpd" rows="3" placeholder="What happened? Who owns the next step?"></textarea>' +
+    '<div style="display:flex;gap:10px;align-items:center;margin-top:8px;"><label style="display:flex;gap:6px;align-items:center;color:var(--muted);font-size:13px;"><input type="checkbox" id="updVendor"> Vendor can see this (#vendor)</label>' +
+    '<button class="btn primary" style="margin-left:auto" onclick="addUpdate()">Add update</button></div></div></div><div id="tlbox"><div class="loading"><span class="spin"></span>Loading updates...</div></div>';
+  gs('ttGetUpdates', S.token, d.sheet, d.p.code, d.p.project).then(function(list) { if ($('tlbox')) $('tlbox').innerHTML = timeline(list); }).catch(function(e) { $('tlbox').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+}
+function timeline(list, showProject) {
+  if (!list.length) return '<div class="empty">No Project Updates yet.</div>';
+  return '<div class="tl">' + list.map(function(u) {
+    return '<div class="ev"><div class="when">' + esc(u.t ? new Date(u.t).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '') + ' | ' + esc(u.author) +
+      (showProject ? ' | ' + esc(u.pid || u.sheet) : '') + (u.ticket ? ' | Ticket ' + esc(u.ticket) : '') + '</div><div class="txt">' + esc(u.text) +
+      (u.att && u.att.length ? '<div style="margin-top:6px">' + u.att.map(function(a) { return '<a class="coupa" href="' + esc(a.url) + '" target="_blank">' + esc(a.name) + '</a>'; }).join(' ') + '</div>' : '') + '</div></div>';
+  }).join('') + '</div>';
+}
+function addUpdate() {
+  var d = S.drawer, txt = $('newUpd').value.trim(); if (!txt) return toast('Write the update first', true);
+  $('tlbox').innerHTML = '<div class="loading"><span class="spin"></span>Saving update...</div>';
+  gs('ttAddUpdate', S.token, d.sheet, d.p.code, d.p.project, txt, $('updVendor').checked).then(function(list) {
+    $('newUpd').value = ''; $('tlbox').innerHTML = timeline(list); toast('Update added');
+    gs('ttRecentUpdates', S.token, 7).then(function(u) { S.recent = u; }).catch(function() {});
+  }).catch(function(e) { toast(e.message, true); drawUpdates(); });
+}
+
+/* ---------- Completion checklist ---------- */
+function drawChecklist() {
+  var d = S.drawer;
+  $('dbody').innerHTML = '<div class="loading"><span class="spin"></span>Loading checklist...</div>';
+  var t = S.tables[d.sheet], ci = findCol(t.cols, ['Category']);
+  gs('ttGetChecklist', S.token, d.sheet, d.p.code, d.p.project, ci === -1 ? '' : d.row.v[ci], d.p.vendor).then(function(cl) {
+    d.cl = cl; paintChecklist();
+  }).catch(function(e) { $('dbody').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+}
+function paintChecklist() {
+  var d = S.drawer, cl = d.cl; if (!cl || d.tab !== 'checklist') return;
+  var html = '<div style="color:var(--muted);font-size:13px;margin-bottom:10px;">Ticks are saved with the Save button, all at once. Completion type: <b>' + esc(cl.type) + '</b></div>';
+  cl.stages.forEach(function(s, si) {
+    var doneN = s.items.filter(function(it, ii) { var k = si + ':' + ii; return d.ticks[k] ? d.ticks[k].checked : it.checked; }).length;
+    html += '<div class="fgroup' + (doneN === s.items.length && s.items.length ? ' shut' : '') + '"><div class="gh2" onclick="this.parentNode.classList.toggle(\'shut\')">' + esc(s.stage) + ' <span class="count' + (doneN === s.items.length ? '' : ' warn') + '" style="float:right">' + doneN + ' of ' + s.items.length + '</span></div><div class="fg2">';
+    s.items.forEach(function(it, ii) {
+      var k = si + ':' + ii, on = d.ticks[k] ? d.ticks[k].checked : it.checked;
+      html += '<label class="ccitem' + (d.ticks[k] ? ' dirty' : '') + '"><input type="checkbox"' + (on ? ' checked' : '') + ' onchange="tick(' + si + ',' + ii + ',this.checked)"><span>' + esc(it.text) + (it.at && !d.ticks[k] ? '<small>Checked ' + esc(it.at) + '</small>' : '') + '</span></label>';
+    });
+    html += '</div></div>';
+  });
+  $('dbody').innerHTML = html;
+}
+function tick(si, ii, on) {
+  var d = S.drawer, it = d.cl.stages[si].items[ii], k = si + ':' + ii;
+  if (on === it.checked) delete d.ticks[k]; else d.ticks[k] = { stage: d.cl.stages[si].stage, item: it.text, checked: on };
+  paintChecklist(); updDirty();
+}
+
+/* ===================== THE WORKS: EXPORT MODEL ===================== */
+function exportModel() {
+  var v = S.view, cols, rows, money_, title, summary = [], sortIndex = 0;
+  var projCols = ['Hotel Code', 'Hotel Name', 'Project', 'Vendor', 'PM Assigned', 'Status', 'Payment Status', 'Date', 'Cost', 'Coupa'];
+  var projRow = function(p) { var pmx = pmFor(p); return [sc(p.code), p.hotel, p.project, p.vendor, pmx ? pmx.name : '', p.status, p.payment, p.date ? fmtDate(p.date) : '', p.cost, p.links[0] ? { text: p.links[0].label, url: p.links[0].url } : '']; };
+  var pm = [false, false, false, false, false, false, false, false, true, false];
+  if (v === 'myday') {
+    var m = myDayModel();
+    title = 'My Day'; cols = ['Section'].concat(projCols); money_ = [false].concat(pm); sortIndex = 0;
+    rows = [];
+    [['Past their date', m.overdue], ['Scheduled next 7 days', m.week], ['In Approvals', m.appr], ['Need to Pay', m.pay]].forEach(function(x) { x[1].forEach(function(p) { rows.push([x[0]].concat(projRow(p))); }); });
+    summary = [m.open.length + ' open projects worth ' + money(m.open.reduce(function(a, p) { return a + p.cost; }, 0)) + '.',
+      m.overdue.length + ' projects are past their date and not marked complete.',
+      m.appr.length + ' projects are waiting in Coupa approvals (' + money(m.appr.reduce(function(a, p) { return a + p.cost; }, 0)) + ').',
+      m.week.length + ' projects are scheduled in the next 7 days.', m.pay.length + ' items need to be paid (' + money(m.pay.reduce(function(a, p) { return a + p.cost; }, 0)) + ').'];
+  } else if (v === 'hotels') {
+    var all = allMain(); title = 'Hotels'; cols = ['Hotel Code', 'Hotel Name', 'Brand', 'Fund', 'RVP', 'General Manager', 'Open Projects', 'Open Cost']; money_ = [0, 0, 0, 0, 0, 0, 0, 1]; sortIndex = 1;
+    rows = (S.boot.hotels || []).filter(function(h) { return (!S.f.brand || h.brand === S.f.brand) && (!S.f.fund || h.fund === S.f.fund) && (!S.f.rvp || h.rvp === S.f.rvp) && (!S.f.code || h.code === S.f.code); }).map(function(h) {
+      var o = all.filter(function(p) { return p.code === h.code && !isDone(p); }); return [sc(h.code), h.name, h.brand, h.fund, h.rvp, h.gm, o.length, o.reduce(function(a, p) { return a + p.cost; }, 0)]; });
+    summary = [rows.length + ' hotels in this view.', rows.reduce(function(a, r) { return a + r[6]; }, 0) + ' open projects across them.'];
+  } else if (v.indexOf('report:') === 0) {
+    var rep = S.reports[S.report] || { rows: [] }; var meta = (S.boot.reports || []).filter(function(r) { return r.name === S.report; })[0] || { label: S.report };
+    var rr = rep.rows.map(repRow).filter(passes); rr.sort(function(a, b) { return a.hotel.localeCompare(b.hotel); });
+    title = meta.label; cols = ['Hotel Code', 'Hotel Name', 'Project', 'Vendor', 'PM Assigned', 'Status', 'Payment Status', 'Details', 'Cost', 'Coupa']; money_ = pm; sortIndex = 1;
+    rows = rr.map(function(p) { var pmx = pmFor(p); return [sc(p.code), p.hotel, p.project, p.vendor, pmx ? pmx.name : '', p.status, p.payment, p.extra, p.cost, p.links[0] ? { text: p.links[0].label, url: p.links[0].url } : '']; });
+    summary = [rows.length + ' items worth ' + money(rr.reduce(function(a, p) { return a + p.cost; }, 0)) + '.'];
+  } else if (v.indexOf('table:') === 0 || v === 'summary') {
+    var sheet = v === 'summary' ? null : S.table;
+    var list = sheet ? S.tables[sheet].rows.map(function(r) { return P(sheet, r); }).filter(passes) : allMain().filter(function(p) { return !isDone(p); });
+    list.sort(function(a, b) { return a.hotel.localeCompare(b.hotel) || ((a.date ? a.date.getTime() : 9e15) - (b.date ? b.date.getTime() : 9e15)); });
+    title = sheet ? tableDef(sheet).label : 'Company Summary - Open Projects'; cols = projCols; money_ = pm; sortIndex = 1;
+    rows = list.map(projRow);
+    var tot = list.reduce(function(a, p) { return a + p.cost; }, 0);
+    summary = ['Rows in this view: ' + list.length + ', worth ' + money(tot) + '.', 'Past their date and not complete: ' + list.filter(QUICK.overdue.test).length + '.', 'Waiting in Coupa approvals: ' + list.filter(QUICK.approvals.test).length + '.'];
+  } else {
+    return null;
+  }
+  var filters = Object.keys(S.f).filter(function(k) { return S.f[k]; }).map(function(k) { return (k === 'q' ? 'Search' : k) + ' = ' + S.f[k]; });
+  if (S.quick) filters.unshift(QUICK[S.quick].label);
+  return { title: title, subtitle: 'TechTrack | ' + (filters.length ? 'Filtered: ' + filters.join(', ') : 'All hotels'), summary: summary, filters: filters.join(', '), columns: cols, money: money_.map(Boolean), rows: rows, sortIndex: sortIndex, asOf: (S.tables.Capex || {}).asOf || S.boot.asOf };
+}
+function emailDash() {
+  // Capex Committee tab and Committee Glance screens send the real Committee Glance email, same as the Sheets menu
+  var cm = S.view === 'table:Capex Committee' ? 'weekly' : (S.view.indexOf('committee:') === 0 ? S.view.slice(10) : '');
+  if (cm) {
+    var fund = S.view.indexOf('table:') === 0 ? (S.f.fund || '') : (((S.plus && S.plus.comF && S.plus.comF[cm]) || {}).fund || '');
+    toast('Sending...');
+    return gs('ttCommitteeEmail', S.token, cm, fund ? [fund] : []).then(function(r) { toast('Committee Glance emailed to ' + r.to); }).catch(function(e) { toast(e.message, true); });
+  }
+  var m = exportModel(); if (!m) return toast('Nothing to email on this screen', true);
+  toast('Sending...');
+  gs('ttEmailDashboard', S.token, m).then(function(r) { toast('Emailed to ' + r.to); }).catch(function(e) { toast(e.message, true); });
+}
+function blueBoxHtml(m) {
+  var F = 'font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#000;';
+  var h = '<html><head><title>' + esc(m.title) + '</title><style>@page{size:landscape;margin:0.4in;} body{' + F + '} table{border-collapse:collapse;} td,th{border:1px solid #000;padding:3px 5px;font-size:10pt;vertical-align:top;} th{background:#224061;color:#fff;text-align:left;} tr{page-break-inside:avoid;}</style></head><body>';
+  h += '<div style="font-size:16pt;font-weight:bold;color:#224061;">' + esc(m.title) + '</div><div style="font-style:italic;margin-bottom:8px;">' + esc(m.subtitle) + '</div>';
+  h += '<div style="font-weight:bold;color:#224061;font-size:13pt;">1. Executive Summary</div><ol>' + m.summary.map(function(s) { return '<li>' + esc(s) + '</li>'; }).join('') + '</ol>';
+  h += '<div style="font-weight:bold;color:#224061;font-size:13pt;">2. Detail</div><table><tr><td style="border:none"></td>' + m.columns.map(function(c, i) { return i === m.sortIndex ? '<td style="background:#FFFFCC;border:1px solid #999;font-weight:bold;font-style:italic;text-align:center;">SORT</td>' : '<td style="border:none"></td>'; }).join('') + '</tr>';
+  h += '<tr><th>#</th>' + m.columns.map(function(c) { return '<th>' + esc(c) + '</th>'; }).join('') + '</tr>';
+  h += '<tr><td style="background:#DCE6F1;font-weight:bold;"></td>' + m.columns.map(function(c, i) { return '<td style="background:#DCE6F1;font-weight:bold;' + (m.money[i] ? 'text-align:right;' : '') + '">' + (i === 0 ? 'Total (' + m.rows.length + ')' : (m.money[i] ? money(m.rows.reduce(function(a, r) { return a + num(r[i]); }, 0)) : '')) + '</td>'; }).join('') + '</tr>';
+  m.rows.forEach(function(r, n) {
+    var bg = n % 2 ? '#DCE6F1' : '#FFFFFF';
+    h += '<tr><td style="background:' + bg + '">' + (n + 1) + '</td>' + r.map(function(v, i) { return '<td style="background:' + bg + ';' + (m.money[i] ? 'text-align:right;' : '') + '">' + (v && v.url ? '<a href="' + esc(v.url) + '">' + esc(v.text) + '</a>' : (m.money[i] ? money(v) : esc(v))) + '</td>'; }).join('') + '</tr>';
+  });
+  var today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  h += '</table><div style="margin-top:14px;font-style:italic;">Prepared by: Chris Perry using TechTrack<br>Date Prepared: ' + today + '<br>Data accurate as of: ' + esc(m.asOf) + '</div></body></html>';
+  return h;
+}
+function printPdf() {
+  var m = exportModel(); if (!m) return toast('Nothing to print on this screen', true);
+  var w = window.open('', '_blank'); if (!w) return toast('Allow pop-ups to print', true);
+  w.document.open(); w.document.write(blueBoxHtml(m)); w.document.close();
+  setTimeout(function() { w.focus(); w.print(); }, 400);
+}
+var EXCELJS_URLS = ['https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js', 'https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js'];
+function loadExcelJs(i) {
+  i = i || 0;
+  if (window.ExcelJS) return Promise.resolve();
+  if (i >= EXCELJS_URLS.length) return Promise.reject(new Error('Could not load the Excel library.'));
+  return new Promise(function(res, rej) { var s = document.createElement('script'); s.src = EXCELJS_URLS[i]; s.onload = res; s.onerror = rej; document.head.appendChild(s); }).catch(function() { return loadExcelJs(i + 1); });
+}
+function exportExcel() {
+  var m = exportModel(); if (!m) return toast('Nothing to export on this screen', true);
+  toast('Building Excel...');
+  loadExcelJs().then(function() {
+    var wb = new ExcelJS.Workbook(), NAVY = 'FF224061', LB = 'FFDCE6F1', MONEY = '$#,##0;"($"#,##0);-';
+    var font = function(o) { return Object.assign({ name: 'Calibri', size: 16 }, o || {}); };
+    // Summary tab
+    var s = wb.addWorksheet('Summary', { views: [{ zoomScale: 70 }] });
+    s.getColumn(1).width = 120;
+    s.getCell('A1').value = m.title; s.getCell('A1').font = font({ size: 22, bold: true, color: { argb: NAVY } });
+    s.getCell('A2').value = m.subtitle; s.getCell('A2').font = font({ size: 11, italic: true });
+    s.getCell('A3').value = 'Executive Summary'; s.getCell('A3').font = font({ size: 16, bold: true, color: { argb: NAVY } });
+    var r = 4; m.summary.forEach(function(t, i) { s.getCell('A' + r).value = (i + 1) + '. ' + t; s.getCell('A' + r).font = font({ size: 14 }); r++; });
+    r++;
+    s.getCell('A' + r).value = 'Prepared by: Chris Perry using TechTrack'; s.getCell('A' + r).font = font({ size: 11, italic: true }); r++;
+    s.getCell('A' + r).value = 'Date Prepared: ' + new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); s.getCell('A' + r).font = font({ size: 11, italic: true }); r++;
+    s.getCell('A' + r).value = 'Data accurate as of: ' + m.asOf; s.getCell('A' + r).font = font({ size: 11, italic: true });
+    // Data tab
+    var ws = wb.addWorksheet(String(m.title).replace(/[\\\/\?\*\[\]:]/g, ' ').slice(0, 31), { views: [{ state: 'frozen', ySplit: 5, zoomScale: 70 }] });
+    var ncol = m.columns.length + 1;
+    ws.getCell(1, 1).value = m.title; ws.getCell(1, 1).font = font({ size: 22, bold: true, color: { argb: NAVY } });
+    ws.getCell(2, 1).value = m.subtitle + '. Sorted by ' + m.columns[m.sortIndex] + '.'; ws.getCell(2, 1).font = font({ size: 11, italic: true });
+    var sc = ws.getCell(3, m.sortIndex + 2); sc.value = 'SORT'; sc.font = font({ bold: true, italic: true }); sc.alignment = { horizontal: 'center' };
+    sc.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFCC' } }; sc.border = { top: { style: 'thin', color: { argb: 'FF999999' } }, left: { style: 'thin', color: { argb: 'FF999999' } }, bottom: { style: 'thin', color: { argb: 'FF999999' } }, right: { style: 'thin', color: { argb: 'FF999999' } } };
+    var hdr = ws.getRow(4); hdr.height = 40;
+    ['#'].concat(m.columns).forEach(function(c, i) { var cell = hdr.getCell(i + 1); cell.value = c; cell.font = font({ bold: true, color: { argb: 'FFFFFFFF' } }); cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: NAVY } }; cell.alignment = { wrapText: true, vertical: 'middle' }; });
+    var first = 6, last = 5 + m.rows.length;
+    var tot = ws.getRow(5);
+    for (var c = 1; c <= ncol; c++) {
+      var cell = tot.getCell(c); cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LB } }; cell.font = font({ bold: true }); cell.border = { bottom: { style: 'medium' } };
+      if (c === 2) cell.value = 'Total';
+      if (c === 1) cell.value = m.rows.length;
+      if (c > 1 && m.money[c - 2] && m.rows.length) { var L = ws.getColumn(c).letter; cell.value = { formula: 'SUBTOTAL(109,' + L + first + ':' + L + last + ')' }; cell.numFmt = MONEY; }
+    }
+    m.rows.forEach(function(row, n) {
+      var xr = ws.getRow(first + n); xr.getCell(1).value = n + 1;
+      row.forEach(function(v, i) {
+        var cell = xr.getCell(i + 2);
+        if (v && v.url) { cell.value = { text: v.text, hyperlink: v.url }; cell.font = font({ color: { argb: 'FF0000EE' }, underline: true }); }
+        else { cell.value = m.money[i] ? num(v) : (v === null || v === undefined ? '' : v); cell.font = font(); }
+        if (m.money[i]) cell.numFmt = MONEY;
+        cell.alignment = { wrapText: true, vertical: 'top' }; cell.border = { bottom: { style: 'thin' } };
+      });
+      xr.getCell(1).font = font(); xr.getCell(1).border = { bottom: { style: 'thin' } };
+    });
+    ws.getColumn(1).width = 6;
+    m.columns.forEach(function(c, i) { var maxLen = String(c).length; m.rows.slice(0, 300).forEach(function(r) { var v = r[i]; var l = String(v && v.text ? v.text : (m.money[i] ? money(v) : v || '')).length; if (l > maxLen) maxLen = l; }); ws.getColumn(i + 2).width = Math.min(60, Math.max(12, maxLen * 1.3)); });
+    return wb.xlsx.writeBuffer();
+  }).then(function(buf) {
+    var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'TechTrack - ' + m.title.replace(/[\\\/:*?"<>|]/g, ' ') + ' - ' + new Date().toISOString().slice(0, 10) + '.xlsx';
+    document.body.appendChild(a); a.click(); setTimeout(function() { URL.revokeObjectURL(a.href); a.remove(); }, 2000);
+    toast('Excel downloaded');
+  }).catch(function(e) { toast(e.message || 'Excel export failed', true); });
+}
+document.addEventListener('keydown', function(e) {
+  if ((e.ctrlKey || e.metaKey) && e.key === 's' && S.drawer) { e.preventDefault(); saveDrawer(); }
+  if (e.key === 'Escape' && S.drawer && !dirtyCount()) closeDrawer();
+});
+</script>
+<?!= include('TechTrackAppPlus') ?>
+<?!= include('TechTrackAppAdmin') ?>
+<?!= include('TechTrackAppDash') ?>
+<?!= include('TechTrackAppVendors') ?>
+<?!= include('RequestInvoiceWeb') ?>
+<?!= include('TechTrackAppSearch') ?>
+<?!= include('TechTrackAppRoomsTv') ?>
+<?!= include('VendorRecordsWorkbook') ?>
+<?!= include('TechTrackAppVendorRecords') ?>
+<?!= include('TechTrackAppBundleA') ?>
+<?!= include('TechTrackAppBundleB') ?>
+<?!= include('TechTrackAppBundleC') ?>
+<?!= include('TechTrackAppR2Ui') ?>
+<?!= include('TechTrackAppR3Ui') ?>
+<?!= include('TechTrackAppR4CalUi') ?>
+<?!= include('TechTrackAppPcUi') ?>
+<?!= include('TechTrackAppHelpUi') ?>
+<?!= include('TechTrackAppWebGuide') ?>
+<?!= include('TechTrackMobile') ?>
+</body>
+</html>

@@ -1,0 +1,757 @@
+<!-- C.Perry -->
+<!--
+  TECHTRACK APP - ADMIN AND LOGINS (Nov 1 2026). Capex Workflow project.
+  New file: + > HTML > TechTrackAppAdmin. TechTrackApp.html includes it
+  right after TechTrackAppPlus.
+
+  1. A new Admin screen in the FCM StaffSuite admin style: one card per
+     section, each opens and closes, Expand all, Collapse all, Export
+     Excel and Print / PDF (Blue Box) at the top.
+  2. TechTrack logins: add, edit, reset password, unlock, turn off or on,
+     sign out everywhere, bulk tools with a preview, access by role,
+     sign-in and security settings, and sign-in help.
+  3. Every screen follows the login's role: Admin sees everything,
+     Editor and Viewer see what the access grid allows.
+  4. My password in the left nav for anyone with a TechTrack login.
+  Server side: TechTrackAppUsersBackend.gs.
+-->
+<style>
+  .adm-head { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; margin-bottom: 14px; }
+  .adm-head h2 { margin: 0 0 4px; font-size: 24px; }
+  .adm-head .sub { color: var(--muted); font-size: 14px; }
+  .adm-head .acts { margin-left: auto; display: flex; gap: 8px; flex-wrap: wrap; }
+  .adm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; padding: 12px 16px 14px; }
+  .adm-tile { background: #12223A; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; min-height: 92px; }
+  .adm-tile .l { color: var(--muted); font-size: 13px; margin-bottom: 4px; }
+  .adm-tile .v { font-size: 17px; }
+  .adm-tile .v b { font-size: 19px; }
+  .adm-tile .n { color: var(--muted); font-size: 12px; margin-top: 6px; }
+  .adm-tile.click { cursor: pointer; }
+  .adm-tile.click:hover { border-color: var(--accent2); }
+  .adm-bar { height: 8px; background: #26364C; border-radius: 5px; overflow: hidden; margin-top: 8px; }
+  .adm-bar i { display: block; height: 100%; background: #2BB673; }
+  .adm-pad { padding: 10px 16px 14px; }
+  .adm-note { color: var(--muted); font-size: 14px; margin: 4px 0 10px; }
+  .adm-srow { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .adm-srow:last-child { border-bottom: none; }
+  .adm-srow .t { flex: 1; min-width: 220px; }
+  .adm-srow .t b { display: block; font-size: 15px; }
+  .adm-srow .t span { color: var(--muted); font-size: 13px; }
+  .adm-srow .c { width: 240px; display: flex; justify-content: flex-end; align-items: center; gap: 8px; }
+  .adm-srow .c input[type=number], .adm-srow .c input[type=text] { width: 220px; }
+  .adm-srow .c input[type=checkbox] { width: 18px; height: 18px; accent-color: #1A9C8C; }
+  .adm-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; padding: 12px 16px 14px; }
+  .adm-tool { background: #12223A; border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .adm-tool b { font-size: 15px; }
+  .adm-tool span { color: var(--muted); font-size: 13px; flex: 1; }
+  .adm-tool .btn { width: 100%; }
+  .btn.teal { background: #0E7C70; border-color: #13998A; color: #fff; }
+  .btn.teal:hover { background: #12907F; }
+  .btn.dangerline { border-color: #7A2E33; color: #FFB3B6; }
+  .adm-users { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .adm-users th { text-align: left; color: var(--accent); background: #0C1726; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; cursor: pointer; user-select: none; }
+  .adm-users td { padding: 8px 10px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+  .adm-users tr:hover td { background: #172A44; }
+  .adm-users td .sub { color: var(--muted); font-size: 12px; }
+  .adm-users input[type=checkbox] { width: 16px; height: 16px; }
+  .adm-filter { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; padding: 10px 16px; }
+  .adm-filter .f { display: flex; flex-direction: column; min-width: 150px; }
+  .adm-filter .f label { color: var(--muted); font-size: 12px; margin-bottom: 4px; }
+  .adm-grid { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .adm-grid th { text-align: left; color: var(--accent); background: #0C1726; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .adm-grid td { padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .adm-grid td .sub { color: var(--muted); font-size: 12px; }
+  .adm-grid select { max-width: 150px; }
+  .adm-temp { font-family: Consolas, monospace; font-size: 20px; letter-spacing: 1px; background: #0B1524; border: 1px dashed var(--accent2); border-radius: 8px; padding: 10px 14px; margin: 10px 0; text-align: center; user-select: all; }
+  .am-bg { position: fixed; inset: 0; background: rgba(4,10,20,.72); z-index: 95; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .am { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; width: 100%; max-width: 560px; box-shadow: 0 20px 50px rgba(0,0,0,.6); overflow: hidden; }
+  .am.wide { max-width: 760px; }
+  .am .mh { background: var(--navy); padding: 12px 16px; font-weight: bold; font-size: 16px; }
+  .am .mb { padding: 16px; max-height: 66vh; overflow: auto; line-height: 1.4; }
+  .am .mb label { display: block; color: var(--muted); font-size: 13px; margin: 10px 0 4px; }
+  .am .mf { padding: 12px 16px; display: flex; gap: 8px; justify-content: flex-end; border-top: 1px solid var(--line); }
+  .am .msg { color: #FFB3B6; min-height: 18px; margin-top: 8px; font-size: 14px; }
+  #nav .navfind { margin: 2px 4px 10px; }
+  #nav .navfind input { padding: 7px 10px; font-size: 14px; }
+  #nav .nav-top { padding-bottom: 8px; border-bottom: 1px solid var(--line); margin-bottom: 4px; }
+  #nav .nav-group { margin-top: 2px; }
+  #nav .nav-group > .gh { padding: 9px 12px; border-radius: 7px; }
+  #nav .nav-group > .gh:hover { background: var(--panel2); color: var(--text); }
+  #nav .ncount { float: right; background: #1C3150; color: var(--muted); border-radius: 9px; padding: 0 7px; font-size: 11px; letter-spacing: 0; font-weight: normal; }
+  #sheetMenu .nav-group { margin-top: 0; }
+  #sheetMenu .nav-group > .gh { padding: 6px 12px 6px 18px; font-size: 11px; }
+  #sheetMenu .nav-item { padding-left: 30px; font-size: 14px; }
+  #bellPanel { position: fixed; top: 58px; right: 70px; width: 440px; max-width: calc(100vw - 20px); max-height: 72vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 14px 40px rgba(0,0,0,.55); z-index: 60; }
+  #bellPanel .bh { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid var(--line); position: sticky; top: 0; background: var(--panel); }
+  #bellPanel .bh b { font-size: 16px; }
+  #bellPanel .bs { color: var(--accent); font-size: 12px; font-weight: bold; letter-spacing: .8px; padding: 10px 14px 4px; text-transform: uppercase; }
+  #bellPanel .bi { padding: 9px 14px; border-bottom: 1px solid var(--line); cursor: pointer; }
+  #bellPanel .bi:hover { background: var(--panel2); }
+  #bellPanel .bi .t1 { font-size: 14px; }
+  #bellPanel .bi .t2 { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  #bellPanel .bi .w { float: right; color: var(--dim); font-size: 12px; }
+  .noexp [onclick^="exportExcel"], .noexp [onclick^="printPdf"], .noexp [onclick^="emailDash"] { display: none !important; }
+</style>
+<script>
+(function () {
+  var prev = { buildNav: window.buildNav, render: window.render, exportModel: window.exportModel };
+  var U = S.users = { data: null, f: { q: '', role: '', status: '' }, sort: { k: 'name', dir: 1 }, sel: {}, look: null };
+
+  /* ===================== ROLE AND ACCESS ===================== */
+  function acc() { return (S.boot && S.boot.access) || { role: 'Admin', admin: true, areas: {} }; }
+  function isAdmin() { return !!acc().admin; }
+  function lvl(area) { var a = acc(); return a.admin ? 'edit' : (a.areas[area] || 'hide'); }
+  function areaOf(v) {
+    v = String(v || '');
+    if (v === 'admin') return 'admin';
+    if (v.indexOf('ba:') === 0 || v.indexOf('bb:') === 0 || v.indexOf('bc:') === 0 || v.indexOf('r2:') === 0 || v.indexOf('r3:') === 0 || v.indexOf('r4:') === 0) return 'admin';  // Bundle A, B and C screens (Nov 12 2026): TechTrack Admins, like Vendors
+    if (v.indexOf('table:') === 0 || v === 'hotels') return 'projects';
+    if (v.indexOf('report:') === 0 || v === 'summary') return 'reports';
+    if (v === 'hub') return 'hub';
+    if (v.indexOf('committee:') === 0) return 'committee';
+    if (v === 'insights') return 'insights';
+    if (v === 'loaders') return 'loaders';
+    if (v === 'legacy' || v === 'tool') return 'sheets';
+    return '';
+  }
+  function canSee(v) { var a = areaOf(v); if (!a) return true; if (a === 'admin') return isAdmin(); return lvl(a) !== 'hide'; }
+
+  /* ===================== SIDE MENU (revamped Nov 1 2026) =====================
+     Short list at the top (My Day, Company Summary, Insights, Reporting Hub,
+     Admin), then groups that all start collapsed. The group holding the
+     open screen opens by itself. One find box searches every item, Sheets
+     menu included. Items a login cannot use are left out. */
+  function navCount(n) { return n ? ' <span class="ncount">' + n + '</span>' : ''; }
+  function grp(id, title, inner, n) {
+    if (!inner) return '';
+    return '<div class="nav-group shut" data-g="' + id + '"><div class="gh" onclick="ttNavToggle(this.parentNode)">' + title + navCount(n) + '</div><div class="gi">' + inner + '</div></div>';
+  }
+  function items(list) { var out = '', n = 0; list.forEach(function (x) { if (canSee(x[0])) { out += navItem(x[0], x[1]); n++; } }); return { h: out, n: n }; }
+
+  /* Nov 12 2026 (Chris): one side menu. The old SHEETS MENU group (121 items, many repeats)
+     is gone. Every Sheets menu item now sits in the group where you would look for it.
+     Entry types: ['v', view, label] app screen, ['t', sheet, label] table,
+     ['r', report, label, fallbackFn] app report (falls back to the Sheets item),
+     ['m', fn, label] Sheets menu item (shown only when it is installed).
+     Any new Sheets menu item that is not placed here lands in OTHER, so nothing gets lost.
+     Nothing in Sheets changes. */
+  // C.Perry
+  // Nov 12 2026 (Chris): Stage Board is no longer pinned here. It lives under PROJECTS and loads only when opened.
+  var NAV_TOP = [['v', 'myday', 'My Day'], ['v', 'summary', 'Company Summary'], ['v', 'insights', 'Insights'], ['v', 'hub', 'Reporting Hub']];
+  var NAV_LAYOUT = [
+    ['projects', 'PROJECTS', [['m', 'showStageBoard', 'Stage Board'], ['t', 'Scoping', 'Scoping'], ['t', 'Future Capex', 'Future Capex'], ['t', 'Capex Committee', 'Capex Committee'], ['t', 'Capex', 'Capex'], ['t', 'Tech Projects Tracker', 'Tech Projects'],
+      ['m', 'showAddCapexProject', 'Add New Capex Project'], ['m', 'showAddTechProject', 'Add New Tech Project'], ['m', 'showBulkUpdateDialog', 'Bulk Update'], ['m', 'showBringBackLaterSummary', 'Bring Back Later'], ['m', 'showProjectClosedCompleteSummary', 'Closed / Complete'],
+      ['v', 'bb:backorders', 'Backorders'], ['v', 'bb:progress', 'Install Progress'], ['v', 'bb:surveys', 'Site Surveys'], ['v', 'bc:stale', 'Stale Vendor Updates'], ['v', 'bc:questions', 'Vendor Questions'], ['v', 'r2:sequencing', 'Sequencing']]],
+    ['updates', 'PROJECT UPDATES', [['m', 'showProjectUpdatesDialog', 'Add Project Update'], ['m', 'showBulkProjectUpdates', 'Bulk Project Updates'], ['m', 'showProjectUpdatesReport', 'View Project Updates'], ['m', 'showCarolineProjectReport', 'Weekly Project Report'],
+      ['m', 'pusSendToday', "Send Today's Update Summary"], ['m', 'pusSendForDatePrompt', 'Update Summary for a Date']]],
+    ['pdash', 'PROJECT DASHBOARDS', [['m', 'showProjectDashboard', 'Project Dashboard'], ['m', 'showTechProjectsDashboard', 'Tech Projects Dashboard'], ['m', 'showCapexDashboard', 'Capex Dashboard'], ['m', 'showCapexPipelineDashboard', 'Capex Pipeline'],
+      ['r', 'inApprovals', 'In Approvals', 'showInApprovalsSummaryV2'], ['m', 'showCapexOnlyInApprovalsSummary', 'In Approvals (Capex Only)'], ['m', 'showCapexStatusDigestDialog', 'Capex Status Digest'], ['m', 'showProjectCycleTimeReport', 'Project Cycle Time']]],
+    ['money', 'MONEY', [['m', 'showPaymentsDue', 'Payments Due'], ['v', 'ba:holds', 'Final Payment Holds'], ['r', 'paymentDue', 'Payment Due / Past Due', 'showPaymentDueSummary'], ['t', 'Overdue Payments', 'Overdue Payments'], ['t', 'Remaining Balance', 'Remaining Balance'],
+      ['m', 'showApprovedNotPaidSummary', 'Approved Not Paid'], ['r', 'awaitingInvoice', 'Awaiting Invoice', 'showAwaitingInvoiceSummary'], ['m', 'showCapexAgingDialog', 'Capex Aging'], ['m', 'showVendorPaymentSummaryDialog', 'Vendor Payment Summary'],
+      ['t', 'Uniguest Business Center', 'Business Center'], ['m', 'showCostAnomalyDialog', 'Cost Anomaly Check'], ['v', 'r2:budget', 'Budget vs Actual']]],
+    ['committee', 'COMMITTEE', [['v', 'committee:weekly', 'Weekly Glance'], ['v', 'committee:T53', 'T53 Glance'], ['v', 'committee:OTHER', 'Other Funds Glance'], ['m', 'showCommitteePrepPacket', 'Prep Packet'],
+      ['m', 'showCommitteeGlancePreview', 'Glance Preview'], ['m', 'cgaQueueNow', 'Queue Teams Card Now'], ['m', 'cgaTurnOn', 'Turn On Thursday Card']]],
+    ['hotels', 'HOTELS', [['v', 'hotels', 'Hotels'], ['m', 'showHotelDetailPrompt', 'Hotel Detail View'], ['m', 'openHotelDashboard', 'Hotel Portfolio Dashboard'], ['m', 'showCurrentAsBuilt', 'Current As-Built'], ['v', 'ba:handoffs', 'Network Handoffs'], ['v', 'bb:blockers', 'Hotel Blockers'], ['v', 'r3:hotel', 'Hotel Record'],
+      ['t', 'Technology Utilities', 'Technology Utilities'], ['t', 'Property Master', 'Property Master'], ['t', 'QA Failures', 'QA Failures'], ['m', 'showHotelDetailPushDialog', 'Send Hotel Tech Profile'], ['m', 'showHotelProjectsEmailDialog', 'Hotel Projects Email'],
+      ['m', 'showHotelComparison', 'Hotel Comparison'], ['m', 'showHotelTimeline', 'Hotel Timeline'], ['m', 'showHotelActivity', 'Hotel Activity'], ['m', 'showOnboardingDashboard', 'Onboarding'], ['m', 'manualCreateOnboardingChecklist', 'Create Onboarding Checklist'], ['m', 'showOffboardHotelDialog', 'Offboard Hotel']]],
+    ['systems', 'SYSTEMS', [['m', 'showDoorLockSummary', 'Door Lock Summary'], ['m', 'showDoorLockExecSummaryDialog', 'Door Lock Exec Summary'], ['m', 'showPBXSummary', 'PBX'], ['m', 'showTelevisionSummary', 'Television'], ['m', 'showToastRolloutSummary', 'Toast Rollout'],
+      ['m', 'showConnectedRoomSummary', 'Connected Room'], ['m', 'showUnoNetSummary', 'UnoNet'], ['m', 'showGreTrends', 'GRE Trends'], ['m', 'showDeficiencyReport', 'Tech Deficiency'], ['m', 'showPowerOfMDashboard', 'Power of M'], ['m', 'showPOMCountdownDialog', 'POM Countdown'], ['m', 'showCutoverReadiness', 'Cutover Readiness'], ['v', 'ba:removed', 'Equipment Removed'], ['v', 'bc:warranty', 'Warranty Claims'], ['v', 'r3:refresh', 'Refresh Plan']]],
+    ['brands', 'BRANDS', [['m', 'showMarriottDashboard', 'Marriott'], ['m', 'showMarriottGPNSComplianceDashboard', 'GPNS Compliance'], ['m', 'showMarriottComplianceDashboard', 'Marriott Compliance'], ['m', 'showGREComplianceDashboard', 'GRE Compliance'], ['m', 'showRedZoneDashboard', 'Marriott Red Zone'],
+      ['m', 'showHiltonDashboard', 'Hilton'], ['m', 'showHiltonRedZoneDashboard', 'Hilton Red Zone'], ['m', 'showHyattDashboard', 'Hyatt'], ['m', 'showBREProjectsDashboard', 'BRE Tech Projects'], ['m', 'showSentToBRESummary', 'Sent to BRE'], ['m', 'showFundDashboard', 'Fund Dashboard'],
+      ['m', 'showImportGSSReportDialog', 'Import GSS Report'], ['m', 'pullLatestGSSReportFromGmail', 'Pull Latest GSS Report'], ['m', 'showImportStayScoreReportDialog', 'Import Stay Score Report'], ['m', 'pullLatestStayScoreReportFromGmail', 'Pull Latest Stay Score Report']]],
+    ['vendors', 'VENDORS', [['v', 'ba:compliance', 'Vendor Compliance'], ['v', 'bc:contracts', 'Contract Renewals'], ['v', 'r2:scorecard', 'Scorecard (vendor view)'], ['v', 'r2:crew', 'Crew Load'], ['v', 'r2:levels', 'Vendor Levels'], ['v', 'r2:pmwork', 'PM Workload']]],
+    // Issues > Vendor Response lives here: TICKETS AND TASKS is the menu's issues group.
+    ['tickets', 'TICKETS AND TASKS', [['m', 'showTixAddDialog', 'Add Ticket'], ['m', 'showTixDashboard', 'Tickets'], ['v', 'bc:issues', 'Vendor Response'], ['m', 'showTasksDashboard', 'Tasks'], ['v', 'r4:cal', 'Technology Calendar']]],
+    ['alerts', 'ALERTS AND RENEWALS', [['m', 'showEndOfLifeDialog', 'End of Life'], ['m', 'showContractExpiryDigestDialog', 'Contract Expiry Digest'],
+      ['m', 'testRunMondayAlertsNow', 'Run Monday Alerts']]],
+    ['reports', 'REPORTS', [['v', 'r3:exec', 'Exec View'], ['m', 'showPortfolioSnapshotDialog', 'Portfolio Snapshot PDF'], ['m', 'showExecutiveSnapshotPreview', 'Executive Snapshot'], ['m', 'exportCapexStatusDigestTab_v2', 'Export Capex Status Tab'], ['m', 'showApproverWorkload', 'Approver Workload'],
+      ['m', 'showCrossSystemHealth', 'Missing Data'], ['m', 'showMissingInfoDialog', 'Missing Info Check'], ['m', 'showDependencyMap', 'Dependency Map']]],
+    ['tools', 'TOOLS', [['v', 'loaders', 'Loader Hub'], ['v', 'legacy', 'All Dashboards'], ['v', 'links', 'Links and Forms'], ['m', 'showCapexDuplicatesDialog', 'Capex Duplicate Detector'], ['m', 'showDataReconciler', 'Data Reconciler'], ['m', 'showSheetHealthCheck', 'Sheet Health Check'], ['v', 'r3:archive', 'Archive Dry Run']]],
+    ['adminx', 'ADMIN', [['v', 'admin', 'Admin'], ['m', 'showNotificationSettings', 'Notification Settings'], ['m', 'showTeamsWebhookSettings', 'Teams Webhook'], ['m', 'refreshAllTechData', 'Refresh All Tech Data'], ['m', 'generateLogicSheet', 'Generate Logic Sheet'],
+      ['m', 'setupDataValidation', 'Setup Data Validation'], ['m', 'listAllTriggers', 'List All Triggers'], ['m', 'refreshProjectCycleTimeColumns', 'Refresh Cycle Time Columns'], ['m', 'ccFixFlowDropdowns', 'Fix Flow Dropdowns'],
+      ['m', 'previewTechProjectsArchiveRebuild', 'Rebuild Tech Projects Archive'], ['m', 'buildHomepageSheet', 'Rebuild Homepage'], ['m', 'rebuildPowerOfMDashboardSheet', 'Rebuild POM Sheet']]],
+    ['archive', 'ARCHIVE', [['t', 'Archived Capex', 'Archived Capex'], ['t', 'Tech Projects Archive', 'Tech Projects Archive'], ['t', 'Secured Quotes', 'Secured Quotes (old)']]]
+  ];
+  // Vendor items that join the VENDORS group the Vendors screen builds.
+  var NAV_VENDOR_EXTRA = [['t', 'Vendors', 'Vendors List'], ['m', 'showVendorSchedulingDashboard', 'Awaiting Scheduling'], ['m', 'showVendorMasterView', 'Vendor Master View'], ['m', 'showVendorConsolidation', 'Vendor Consolidation']];
+  // Repeats and Sheets-only items left out of the Web menu on purpose (they stay in Sheets).
+  var NAV_DROP = { showGlobalSearch: 1, showHotelCodeAutocomplete: 1, showRemainingBalance: 1, showTechTrackGuide: 1, showTechTrackTraining: 0,
+    showWeeklyCommitteeGlance: 1, showT53CommitteeGlance: 1, showOtherFundsCommitteeGlance: 1,
+    showTechCalendar: 1,
+    // Hidden 11/12 (Chris): hidden from the Web; files kept. Restore by removing these names.
+    showQuickActions: 1, showMessageBoard: 1, openContractExpiryDashboard: 1, showExpirationDatesDialog: 1, showRiskRegister: 1, showRenewalCalendar: 1 };  // Nov 12 2026: the native Technology Calendar (r4:cal) replaces it in the Web; the Sheets menu keeps it
+  var ADMIN_ONLY = { adminx: 1 };
+  var navMenuLoading = false;
+
+  function menuIndex() { var ix = {}; (S.plus && S.plus.menu || []).forEach(function (g) { g.i.forEach(function (it) { if (!ix[it.fn]) ix[it.fn] = it; }); }); return ix; }
+  function sheetBtn(it, label) {
+    return '<button class="nav-item" title="' + esc(it.desc || '') + '" onclick="ttMenuClick(\'' + esc(it.fn) + '\',\'' + esc(it.kind) + '\',\'' + esc(label).replace(/'/g, '') + '\')">' + esc(label) + '</button>';
+  }
+  function navEntries(list, ix, used) {
+    var out = '', n = 0, sheetsOk = canSee('tool'), tbl = {}, rep = {};
+    (S.boot.tables || []).forEach(function (x) { tbl[x.sheet] = 1; });
+    (S.boot.reports || []).forEach(function (r) { rep[r.name] = 1; });
+    list.forEach(function (e) {
+      var k = e[0];
+      if (k === 'v') { if (canSee(e[1])) { out += navItem(e[1], e[2]); n++; } return; }
+      if (k === 't') { if (tbl[e[1]] && canSee('table:' + e[1])) { out += navItem('table:' + e[1], e[2]); n++; } return; }
+      if (k === 'r') {
+        if (e[3]) used[e[3]] = 1;
+        if (rep[e[1]] && canSee('report:' + e[1])) { out += navItem('report:' + e[1], e[2]); n++; return; }
+        e = ['m', e[3], e[2]];
+      }
+      used[e[1]] = 1;
+      var it = ix[e[1]];
+      if (sheetsOk && it && it.ok) { out += sheetBtn(it, e[2]); n++; }
+    });
+    return { h: out, n: n };
+  }
+
+  window.buildNav = function () {
+    var nav = $('nav'); if (!nav) return;
+    var sheetsOk = canSee('tool'), ix = menuIndex(), used = {};
+    var top = navEntries(NAV_TOP, ix, used);
+    var G = NAV_LAYOUT.map(function (g) {
+      if (ADMIN_ONLY[g[0]] && !isAdmin()) return [g[0], g[1], { h: '', n: 0 }];
+      return [g[0], g[1], navEntries(g[2], ix, used)];
+    });
+    var vx = navEntries(NAV_VENDOR_EXTRA, ix, used);
+    // Nov 12 2026: items placed in NAV_LAYOUT's VENDORS entry (Vendor Compliance) join the vendor extras,
+    // so they survive the Vendors screen rebuilding its group.
+    var vl = (G.filter(function (g) { return g[0] === 'vendors'; })[0] || [])[2];
+    if (vl && vl.n) vx = { h: vl.h + vx.h, n: vl.n + vx.n };
+    // Anything new in the Sheets menu that is not placed above shows in OTHER.
+    var other = { h: '', n: 0 };
+    used.showTechTrackTraining = 1;
+    if (sheetsOk) (S.plus && S.plus.menu || []).forEach(function (g) { g.i.forEach(function (it) {
+      if (used[it.fn] || NAV_DROP[it.fn] || !it.ok || String(it.kind).indexOf('n:') === 0) return;
+      used[it.fn] = 1; other.h += sheetBtn(it, it.name); other.n++;
+    }); });
+    var help = navItem('help', 'Help and Training') + navItem('guide', 'Web Guide') + navItem('training', 'Web Training') + (function () { used.showTechTrackTraining = 1; return ''; })() +
+      '<button class="nav-item" onclick="ttTour(true)">Take the tour</button><button class="nav-item" onclick="ttMyPassword()">My password</button>';
+    var html = '<div class="navfind"><input id="navFind" placeholder="Find in the menu" oninput="ttNavSearch(this.value)" autocomplete="off"></div>' +
+      '<div class="nav-top">' + top.h + '</div>' +
+      G.map(function (g) {
+        if (g[0] === 'vendors') return grp('vendors', 'VENDORS', vx.h, vx.n);
+        if (g[0] === 'archive' && other.n) return grp('other', 'OTHER', other.h, other.n) + grp(g[0], g[1], g[2].h, g[2].n);
+        return grp(g[0], g[1], g[2].h, g[2].n);
+      }).join('') +
+      grp('help', 'HELP AND ACCOUNT', help, 0);
+    nav.innerHTML = html; lastV = null;
+    nav._ttVx = vx.h;
+    if (!nav._ttVxObs && window.MutationObserver) { nav._ttVxObs = new MutationObserver(function () { ttNavVendorFix(); }); nav._ttVxObs.observe(nav, { childList: true }); }
+    setTimeout(ttNavVendorFix, 0);
+    if (sheetsOk && !(S.plus && S.plus.menu) && !navMenuLoading) {
+      navMenuLoading = true;
+      gs('ttMenu', S.token).then(function (m) { navMenuLoading = false; S.plus = S.plus || {}; S.plus.menu = m; window.buildNav(); })
+        .catch(function () { navMenuLoading = false; });
+    }
+    var vp = document.querySelector('header.top .top-right button[onclick^="openPortal"]'); if (vp) vp.style.display = isAdmin() ? '' : 'none';
+    document.body.classList.toggle('noexp', lvl('exports') === 'hide');
+    markNav();
+    if (typeof bellFetch === 'function') { B.at = 0; bellFetch(true); }
+  };
+  // The Vendors screen rebuilds its VENDORS group when its counts load. Put the extra vendor
+  // items back in it and keep the group between BRANDS and TICKETS AND TASKS.
+  window.ttNavVendorFix = function () {
+    var nav = $('nav'); if (!nav || !nav._ttVx) return;
+    var g = nav.querySelector('[data-g="vendors"]'); if (!g) return;
+    var gi = g.querySelector('.gi');
+    if (gi && !gi.querySelector('[data-ttvx]')) { gi.insertAdjacentHTML('beforeend', '<span data-ttvx></span>' + nav._ttVx); markNav(); }
+    var t = nav.querySelector('[data-g="tickets"]') || nav.querySelector('[data-g="alerts"]');
+    if (t && g.nextElementSibling !== t) nav.insertBefore(g, t);
+  };
+  window.ttNavToggle = function (g) { g.classList.toggle('shut'); };
+  // Collapse all groups, then open only the one holding the open screen.
+  var baseMark = window.markNav, lastV = null;
+  window.markNav = function () {
+    baseMark();
+    if (($('navFind') || {}).value || S.view === lastV) return;
+    lastV = S.view;
+    var act = document.querySelector('#nav .nav-item.active'), g = act && act.closest('.nav-group[data-g]');
+    if (g) g.classList.remove('shut');
+  };
+  window.ttNavSearch = function (v) {
+    var q = norm(v), nav = $('nav');
+    Array.prototype.forEach.call(nav.querySelectorAll('.nav-top .nav-item, .nav-group[data-g] .nav-item'), function (b) { b.style.display = !q || norm(b.textContent).indexOf(q) !== -1 ? '' : 'none'; });
+    Array.prototype.forEach.call(nav.querySelectorAll('.nav-group[data-g]'), function (g) {
+      var shown = Array.prototype.some.call(g.querySelectorAll('.nav-item'), function (b) { return b.style.display !== 'none'; });
+      g.style.display = shown ? '' : 'none';
+      g.classList.toggle('shut', !q);
+    });
+    if (!q) markNav();
+  };
+
+  window.render = function () {
+    if (!canSee(S.view)) {
+      $('view').innerHTML = '<div class="hello"><b>Not part of your login</b><div>Your TechTrack login (' + esc(acc().role) + ') does not include this screen. Ask a TechTrack Admin if you need it.</div></div>';
+      var fb = $('fbar'); if (fb) { fb.innerHTML = ''; fb.style.display = 'none'; }
+      return;
+    }
+    if (S.view === 'admin') { markNav(); renderAdmin(); setTimeout(ttBellPaint, 0); return; }
+    var out = prev.render(); setTimeout(ttBellPaint, 0); return out;
+  };
+
+  /* ===================== SMALL HELPERS ===================== */
+  function am(title, body, buttons, wide) {
+    var bg = document.createElement('div'); bg.className = 'am-bg';
+    bg.innerHTML = '<div class="am' + (wide ? ' wide' : '') + '"><div class="mh">' + esc(title) + '</div><div class="mb">' + body + '</div><div class="mf"></div></div>';
+    var mf = bg.querySelector('.mf');
+    (buttons || [{ label: 'Close' }]).forEach(function (b) {
+      var el = document.createElement('button'); el.className = 'btn' + (b.cls ? ' ' + b.cls : ''); el.textContent = b.label;
+      el.onclick = function () { if (b.fn) { var keep = b.fn(bg, el); if (keep === true) return; } bg.remove(); };
+      mf.appendChild(el);
+    });
+    document.body.appendChild(bg);
+    var f = bg.querySelector('input:not([type=checkbox]),select'); if (f) setTimeout(function () { f.focus(); }, 30);
+    return bg;
+  }
+  function busy(el, on, label) { if (!el) return; el.disabled = !!on; if (on) { el._t = el.textContent; el.textContent = label || 'Working...'; } else if (el._t) el.textContent = el._t; }
+  function pillFor(st) { var c = st === 'Active' ? 'g' : st === 'Off' ? 'n' : st === 'Locked' ? 'r' : 'a'; return '<span class="pill ' + c + '">' + esc(st) + '</span>'; }
+  function rolePill(r) { return '<span class="pill ' + (r === 'Admin' ? 'b' : r === 'Editor' ? 'g' : 'n') + '">' + esc(r) + '</span>'; }
+  function copyText(t) { try { navigator.clipboard.writeText(t); toast('Copied'); } catch (e) { toast('Select the text and copy it', true); } }
+  window.ttAdmCopy = function (id) { var el = document.getElementById(id); if (el) copyText(el.textContent); };
+  function showTemps(list, title) {
+    if (!list || !list.length) return;
+    var body = '<div>Give each person their temporary password yourself (TechTrack does not email it). They pick their own password the first time they sign in. You will not see these again.</div>' +
+      list.map(function (x, i) { return '<div style="margin-top:12px"><b>' + esc(x.name || x.email) + '</b> <span style="color:var(--muted)">' + esc(x.email) + '</span><div class="adm-temp" id="tmp' + i + '">' + esc(x.temp) + '</div></div>'; }).join('') +
+      '<div style="color:var(--muted);font-size:13px;margin-top:10px">Sign-in link: ' + esc(BOOT.webAppUrl || '') + '</div>';
+    var all = list.map(function (x) { return (x.name || x.email) + ' | ' + x.email + ' | ' + x.temp; }).join('\n') + '\nSign in at: ' + (BOOT.webAppUrl || '');
+    am(title || 'Temporary password', body, [{ label: 'Copy all', fn: function () { copyText(all); return true; } }, { label: 'Done', cls: 'primary' }], list.length > 1);
+  }
+
+  /* ===================== LOAD ===================== */
+  function loadAll(force) {
+    var jobs = [];
+    if (!S.plus.admin || force) jobs.push(gs('ttAdminGet', S.token).then(function (a) { S.plus.admin = a; }));
+    if (!U.data || force) jobs.push(gs('ttUsersGet', S.token).then(function (d) { U.data = d; }).catch(function (e) { U.data = { error: e.message }; }));
+    return Promise.all(jobs);
+  }
+
+  /* ===================== ADMIN SCREEN ===================== */
+  function renderAdmin(force) {
+    var fb = $('fbar'); if (fb) { fb.innerHTML = ''; fb.style.display = 'none'; }
+    if (!S.plus.admin || !U.data || force) {
+      if (!$('admRoot')) $('view').innerHTML = '<div class="loading"><span class="spin"></span>Loading Admin...</div>';
+      return loadAll(force).then(function () { if (S.view === 'admin') renderAdmin(); }).catch(function (e) { $('view').innerHTML = '<div class="conf">' + esc(e.message) + '</div>'; });
+    }
+    var a = S.plus.admin, d = U.data;
+    var y = window.scrollY, mainEl = $('main'), my = mainEl ? mainEl.scrollTop : 0;
+    var html = '<div id="admRoot"><div class="adm-head"><div><h2>Admin</h2><div class="sub">Logins, settings and system jobs. Everything here used to need the Google Sheet. Every change is saved in the App Log.</div></div>' +
+      '<div class="acts"><button class="btn small" onclick="expandAll(true)">Expand all</button><button class="btn small" onclick="expandAll(false)">Collapse all</button>' +
+      '<button class="btn small" onclick="exportExcel()">Export Excel</button><button class="btn small" onclick="printPdf()">Print / PDF</button><button class="btn small" onclick="ttAdmReload()">Reload</button></div></div>';
+    html += cardShell('adm:dash', 'Admin dashboard', '', '', dashHtml(a, d), true);
+    if (d.error) html += cardShell('adm:users', 'TechTrack logins', '', '', '<div class="adm-pad"><div class="conf">' + esc(d.error) + '</div><div class="adm-note">Paste TechTrackAppUsersBackend.gs into the Capex Workflow project, save, and deploy a new version.</div></div>', true);
+    else {
+      html += cardShell('adm:users', 'TechTrack logins', d.stats.active + ' active of ' + d.stats.total, '<button class="btn small teal" onclick="ttAdmUser(\'\')">+ Add login</button>', usersHtml(d), true);
+      html += cardShell('adm:bulk', 'Bulk login tools', '', '<button class="btn small" onclick="ttAdmBulk()">Open bulk tools</button>', '<div class="adm-pad adm-note" style="margin:0">Change role, turn off or on, reset passwords, unlock, or sign out many people at once. Tick logins in the list above first, or pick them in the tool. You see exactly what will change before anything is saved.</div>', true);
+      html += cardShell('adm:grid', 'Access by role', '', '<button class="btn small" onclick="ttAdmGridDefaults()">Put back defaults</button>', gridHtml(d), false);
+      html += cardShell('adm:sec', 'Sign-in and security', '', '<button class="btn small" onclick="ttAdmSecDefaults()">Put back defaults</button>', secHtml(d), false);
+      html += cardShell('adm:help', 'Sign-in help', '', '', helpHtml(), true);
+    }
+    html += cardShell('adm:modes', 'Modes', '', '', modesHtml(a), false);
+    html += cardShell('adm:notif', 'Notifications', '', '<button class="btn small" onclick="ttAdmNotif()">Save notifications</button>', notifHtml(a), false);
+    html += cardShell('adm:teams', 'Microsoft Teams', '', '<button class="btn small" onclick="ttAdminTeamsTest()">Send test</button>', teamsHtml(a), false);
+    html += cardShell('adm:lists', 'Dropdown lists', '_ValidationLists', '', listsHtml(a), false);
+    html += cardShell('adm:tools', 'One click tools', '', '', toolsHtml(), true);
+    html += cardShell('adm:trig', 'Automatic jobs (triggers)', (a.triggers || []).length + ' jobs', '', trigHtml(a), false);
+    html += cardShell('adm:log', 'Settings history and App Log', '', '<button class="btn small" onclick="ttAdminLog()">Load</button>', '<div id="adLog" class="adm-pad"><div class="empty">Press Load to see the latest app, login and loader activity.</div></div>', false);
+    html += '</div>';
+    $('view').innerHTML = html;
+    if ((a.lists || []).length && $('vlName')) ttAdminList();
+    if (mainEl) mainEl.scrollTop = my; window.scrollTo(0, y);
+  }
+  window.ttAdmReload = function () { renderAdmin(true); };
+
+  function tile(label, value, note, bar, click) {
+    return '<div class="adm-tile' + (click ? ' click' : '') + '"' + (click ? ' onclick="' + click + '"' : '') + '><div class="l">' + esc(label) + '</div><div class="v">' + value + '</div>' +
+      (bar !== null && bar !== undefined ? '<div class="adm-bar"><i style="width:' + Math.max(2, Math.min(100, bar)) + '%"></i></div>' : '') + (note ? '<div class="n">' + note + '</div>' : '') + '</div>';
+  }
+  function dashHtml(a, d) {
+    var s = d.stats || { total: 0, active: 0, locked: 0, mustChange: 0, week: 0, never: 0, byRole: [] };
+    var roles = (s.byRole || []).map(function (x) { return x.n + ' ' + x.role; }).join(', ');
+    return '<div class="adm-tiles">' +
+      tile('TechTrack logins', '<b>' + s.active + '</b> active of ' + s.total, roles || 'No logins yet', s.total ? s.active / s.total * 100 : 0, "ttAdmFilter('status','Active')") +
+      tile('Signed in last 7 days', '<b>' + s.week + '</b>', s.never ? s.never + ' never signed in' : 'Everyone has signed in', null, '') +
+      tile('Locked', s.locked ? '<span class="pill r">' + s.locked + ' locked</span>' : '<span class="pill g">None</span>', 'Too many wrong passwords', null, s.locked ? "ttAdmFilter('status','Locked')" : '') +
+      tile('Waiting on first sign-in', s.mustChange ? '<span class="pill a">' + s.mustChange + '</span>' : '<span class="pill g">None</span>', 'Still on a temporary password', null, s.mustChange ? "ttAdmFilter('status','Must change password')" : '') +
+      tile('Test Mode', a.testMode ? '<span class="pill a">On</span>' : '<span class="pill g">Off</span>', 'Send Only To Me: ' + (a.sendOnlyToMe ? 'On' : 'Off'), null, '') +
+      tile('Save automations', a.automations ? '<span class="pill g">On</span>' : '<span class="pill a">Off</span>', 'Run once after each Save', null, '') +
+      tile('Automatic jobs', '<b>' + (a.triggers || []).length + '</b> triggers', 'Read only. No new triggers are added.', null, '') +
+      '</div>';
+  }
+
+  /* ----- Logins list ----- */
+  function filtered(d) {
+    var f = U.f, q = norm(f.q);
+    var list = d.users.filter(function (u) {
+      if (f.role && u.role !== f.role) return false;
+      if (f.status && u.status !== f.status) return false;
+      if (q && norm([u.name, u.email, u.notes, u.role].join(' ')).indexOf(q) === -1) return false;
+      return true;
+    });
+    var k = U.sort.k, dir = U.sort.dir;
+    list.sort(function (x, y) { return String(x[k] || '').localeCompare(String(y[k] || '')) * dir || String(x.name).localeCompare(String(y.name)); });
+    return list;
+  }
+  function usersHtml(d) {
+    var f = U.f, list = filtered(d);
+    var opt = function (vals, cur) { return '<option value="">All</option>' + vals.map(function (v) { return '<option' + (cur === v ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join(''); };
+    var bar = '<div class="adm-filter"><div class="f" style="flex:1;min-width:220px"><label>Search</label><input id="admQ" value="' + esc(f.q) + '" placeholder="Name, email or notes" oninput="ttAdmFilter(\'q\',this.value)"></div>' +
+      '<div class="f"><label>Role</label><select onchange="ttAdmFilter(\'role\',this.value)">' + opt(d.roles, f.role) + '</select></div>' +
+      '<div class="f"><label>Status</label><select onchange="ttAdmFilter(\'status\',this.value)">' + opt(['Active', 'Must change password', 'Locked', 'Off'], f.status) + '</select></div>' +
+      '<div class="f" style="min-width:0"><label>&nbsp;</label><button class="btn small" onclick="U_clear()">Clear filters</button></div></div>';
+    if (!d.users.length) return bar + '<div class="adm-pad"><div class="empty">No TechTrack logins yet. Press + Add login to make the first one. A TechTrack Admin login also works in the Vendor Portal with the same password.</div></div>';
+    var arrow = function (k) { return U.sort.k === k ? (U.sort.dir > 0 ? ' &#9650;' : ' &#9660;') : ''; };
+    var th = function (k, label) { return '<th onclick="ttAdmSort(\'' + k + '\')">' + label + arrow(k) + '</th>'; };
+    var nSel = Object.keys(U.sel).filter(function (e) { return U.sel[e]; }).length;
+    var rows = list.map(function (u) {
+      var e = esc(u.email);
+      return '<tr><td><input type="checkbox" ' + (U.sel[u.email] ? 'checked' : '') + ' onchange="ttAdmSel(\'' + e + '\',this.checked)"></td>' +
+        '<td><b>' + esc(u.name || '(no name)') + '</b>' + (u.notes ? '<div class="sub">' + esc(u.notes) + '</div>' : '') + '</td>' +
+        '<td>' + e + '</td><td>' + rolePill(u.role) + (u.role !== 'Admin' && u.access && Object.keys(u.access).length ? '<div class="sub">Custom access</div>' : '') + '</td><td>' + pillFor(u.status) + (u.locked ? '<div class="sub">until ' + esc(u.lockedUntil) + '</div>' : '') + '</td>' +
+        '<td>' + (u.lastSignIn ? esc(u.lastSignIn) : '<span class="sub">Never</span>') + '</td><td>' + esc(u.created) + (u.createdBy ? '<div class="sub">by ' + esc(u.createdBy) + '</div>' : '') + '</td>' +
+        '<td style="white-space:nowrap"><button class="btn small" onclick="ttAdmUser(\'' + e + '\')">Edit</button> <button class="btn small" onclick="ttAdmAct(\'' + e + '\',\'reset\')">Reset password</button>' +
+        (u.locked || u.tries ? ' <button class="btn small" onclick="ttAdmAct(\'' + e + '\',\'unlock\')">Unlock</button>' : '') + '</td></tr>';
+    }).join('');
+    return bar + '<div style="padding:0 16px 6px;color:var(--muted);font-size:13px">' + list.length + ' of ' + d.users.length + ' logins' + (nSel ? ' | <b style="color:#fff">' + nSel + ' ticked</b> for bulk tools <a href="#" onclick="ttAdmSelAll(false);return false">clear</a>' : '') + '</div>' +
+      '<div class="gridwrap" style="max-height:520px;overflow:auto;margin:0 16px 14px;border:1px solid var(--line);border-radius:8px"><table class="adm-users"><tr><th><input type="checkbox" title="Tick all shown" onchange="ttAdmSelAll(this.checked)"></th>' +
+      th('name', 'Name') + th('email', 'Email') + th('role', 'Role') + th('status', 'Status') + th('lastSignIn', 'Last sign-in') + th('created', 'Created') + '<th></th></tr>' + (rows || '<tr><td colspan="8"><div class="empty">No logins match these filters.</div></td></tr>') + '</table></div>';
+  }
+  function repaintUsers() {
+    var card = document.querySelector('.card[data-k="adm:users"] > .cb'); if (!card) return renderAdmin();
+    var q = $('admQ'), pos = q && document.activeElement === q ? q.selectionStart : -1;
+    card.innerHTML = usersHtml(U.data);
+    if (pos > -1) { q = $('admQ'); q.focus(); q.setSelectionRange(pos, pos); }
+  }
+  window.U_clear = function () { U.f = { q: '', role: '', status: '' }; repaintUsers(); };
+  window.ttAdmFilter = function (k, v) { U.f[k] = v; if (S.view !== 'admin') return; S.open['adm:users'] = true; var c = document.querySelector('.card[data-k="adm:users"]'); if (c && c.classList.contains('shut')) toggleCard(c.querySelector('.ch')); repaintUsers(); if (k !== 'q' && c) c.scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  window.ttAdmSort = function (k) { U.sort = { k: k, dir: U.sort.k === k ? -U.sort.dir : 1 }; repaintUsers(); };
+  window.ttAdmSel = function (e, on) { U.sel[e] = on; repaintUsers(); };
+  window.ttAdmSelAll = function (on) { U.sel = {}; if (on) filtered(U.data).forEach(function (u) { U.sel[u.email] = true; }); repaintUsers(); };
+
+  /* ----- Add or edit one login ----- */
+  window.ttAdmUser = function (email) {
+    var d = U.data, u = email ? d.users.filter(function (x) { return x.email === email; })[0] : null, isNew = !u;
+    u = u || { email: '', name: '', role: 'Editor', active: true, notes: '' };
+    var self = !isNew && d.me && d.me.email === u.email;
+    var body = '<label>Name</label><input id="auName" value="' + esc(u.name) + '" placeholder="First and last name">' +
+      '<label>Email (this is the sign-in name)</label><input id="auEmail" type="email" value="' + esc(u.email) + '"' + (isNew ? '' : ' disabled') + ' placeholder="name@mcrinvestors.com">' +
+      '<label>Role</label><select id="auRole"' + (self ? ' disabled' : '') + '>' + d.roles.map(function (r) { return '<option' + (u.role === r ? ' selected' : '') + '>' + r + '</option>'; }).join('') + '</select>' +
+      '<div style="color:var(--muted);font-size:12px;margin-top:4px">Admin: everything, including Admin and logins. Editor and Viewer: what Access by role allows, unless set below for this person.</div>' +
+      personAccessHtml(d, u) +
+      '<label class="switch" style="margin-top:12px;color:#fff"><input type="checkbox" id="auActive" ' + (u.active ? 'checked' : '') + (self ? ' disabled' : '') + '> Login is on</label>' +
+      '<label>Notes (only Admins see these)</label><input id="auNotes" value="' + esc(u.notes) + '" placeholder="Optional">' +
+      '<label>' + (isNew ? 'Temporary password' : 'Set a new temporary password (optional)') + '</label>' +
+      '<input id="auPw" type="text" autocomplete="off" placeholder="' + (isNew ? 'Leave blank and TechTrack makes one' : 'Leave blank to keep the current password') + '">' +
+      '<div style="color:var(--muted);font-size:12px;margin-top:4px">The person must change it at the first sign-in.</div>' +
+      (isNew ? '' : '<div style="color:var(--muted);font-size:13px;margin-top:12px">Status: ' + pillFor(u.status) + ' | Last sign-in: ' + esc(u.lastSignIn || 'Never') + ' | Created ' + esc(u.created) + (u.createdBy ? ' by ' + esc(u.createdBy) : '') + '</div>') +
+      '<div class="msg" id="auMsg"></div>';
+    var btns = [{ label: 'Cancel' }];
+    if (!isNew && !self) btns.unshift({ label: 'Sign out everywhere', fn: function (bg) { bg.remove(); ttAdmAct(u.email, 'signout'); } });
+    btns.push({ label: isNew ? 'Make login' : 'Save', cls: 'teal', fn: function (bg, el) {
+      var p = { isNew: isNew, email: isNew ? $('auEmail').value.trim() : u.email, name: $('auName').value.trim(), role: $('auRole').value, active: $('auActive').checked, notes: $('auNotes').value.trim(), password: $('auPw').value.trim(), access: personAccessRead() };
+      busy(el, true, 'Saving...'); $('auMsg').textContent = '';
+      gs('ttUserSave', S.token, p).then(function (r) {
+        bg.remove(); toast(r.msg); U.sel = {};
+        return loadUsers().then(function () { if (r.temp) showTemps([{ email: r.email, name: p.name, temp: r.temp }], isNew ? 'Login made' : 'New temporary password'); });
+      }).catch(function (e) { busy(el, false); $('auMsg').textContent = e.message; });
+      return true;
+    } });
+    am(isNew ? 'Add a TechTrack login' : 'Edit login: ' + (u.name || u.email), body, btns);
+  };
+  // Access for this person: one row per area, "Same as role" or a set level.
+  function personAccessHtml(d, u) {
+    var mine = u.access || {}, labels = { edit: 'Can change', view: 'Can see', hide: 'Hidden' };
+    var roleLvl = function (role, a) { return role === 'Admin' ? (a.canEdit ? 'edit' : 'view') : ((d.grid[role] || {})[a.key] || 'hide'); };
+    var rows = d.areas.map(function (a) {
+      var opts = [['', 'Same as role']].concat(a.canEdit ? [['edit', 'Can change']] : []).concat([['view', 'Can see'], ['hide', 'Hidden']]);
+      return '<tr><td><b>' + esc(a.label) + '</b><div class="sub">Role gives: <span class="paRole" data-k="' + a.key + '">' + labels[roleLvl(u.role || 'Editor', a)] + '</span></div></td><td><select class="paSel" data-k="' + a.key + '">' +
+        opts.map(function (o) { return '<option value="' + o[0] + '"' + ((mine[a.key] || '') === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></td></tr>';
+    }).join('');
+    setTimeout(function () {
+      var r = $('auRole'); if (!r) return;
+      var paint = function () {
+        var role = r.value, box = $('paBox'); if (box) box.style.display = role === 'Admin' ? 'none' : '';
+        var note = $('paAdmin'); if (note) note.style.display = role === 'Admin' ? '' : 'none';
+        Array.prototype.forEach.call(document.querySelectorAll('.paRole'), function (el) { var a = d.areas.filter(function (x) { return x.key === el.getAttribute('data-k'); })[0]; if (a) el.textContent = labels[roleLvl(role, a)]; });
+      };
+      r.addEventListener('change', paint); paint();
+    }, 40);
+    return '<label style="margin-top:12px">Access for this person</label>' +
+      '<div id="paAdmin" style="color:var(--muted);font-size:12px;display:none">Admin logins always have everything.</div>' +
+      '<div id="paBox"><div style="color:var(--muted);font-size:12px;margin:4px 0 6px">Leave an area on Same as role to follow Access by role.</div>' +
+      '<table class="adm-grid">' + rows + '</table></div>';
+  }
+  function personAccessRead() {
+    var out = {}, r = $('auRole');
+    if (r && r.value === 'Admin') return out;
+    Array.prototype.forEach.call(document.querySelectorAll('.paSel'), function (s) { out[s.getAttribute('data-k')] = s.value; });
+    return out;
+  }
+  function loadUsers() { return gs('ttUsersGet', S.token).then(function (d) { U.data = d; if (S.view === 'admin') renderAdmin(); }); }
+
+  var ACT = { reset: ['Reset password', 'They get a new temporary password and are signed out. They pick their own password at the next sign-in.'], unlock: ['Unlock', 'Clears the wrong password count so they can sign in now.'], off: ['Turn off', 'They are signed out and cannot sign in until the login is turned on again.'], on: ['Turn on', 'They can sign in again with their current password.'], signout: ['Sign out everywhere', 'Ends every open TechTrack session for this login. Their password does not change.'] };
+  window.ttAdmAct = function (email, action) {
+    var u = (U.data.users || []).filter(function (x) { return x.email === email; })[0] || { email: email, name: email };
+    am(ACT[action][0] + ': ' + (u.name || u.email), esc(ACT[action][1]) + '<div class="msg" id="aaMsg"></div>', [{ label: 'Cancel' }, { label: ACT[action][0], cls: 'teal', fn: function (bg, el) {
+      busy(el, true);
+      gs('ttUserAction', S.token, email, action).then(function (r) {
+        bg.remove(); toast(r.msg);
+        if (U.look && U.look.email === email) ttAdmLookup(email);
+        return loadUsers().then(function () { showTemps(r.temps, 'New temporary password'); });
+      }).catch(function (e) { busy(el, false); $('aaMsg').textContent = e.message; });
+      return true;
+    } }]);
+  };
+
+  /* ----- Bulk tools with preview ----- */
+  window.ttAdmBulk = function () {
+    var d = U.data; if (!d || !d.users) return;
+    var ticked = Object.keys(U.sel).filter(function (e) { return U.sel[e]; });
+    var body = '<label>What to change</label><select id="abAct"><option value="role">Change role</option><option value="off">Turn logins off</option><option value="on">Turn logins on</option><option value="reset">Reset passwords</option><option value="unlock">Unlock</option><option value="signout">Sign out everywhere</option></select>' +
+      '<div id="abRoleWrap"><label>New role</label><select id="abRole">' + d.roles.map(function (r) { return '<option>' + r + '</option>'; }).join('') + '</select></div>' +
+      '<label>Logins (' + d.users.length + ')</label><div style="max-height:240px;overflow:auto;border:1px solid var(--line);border-radius:6px;padding:6px 10px">' +
+      '<label class="switch" style="color:#fff;margin:4px 0"><input type="checkbox" onchange="Array.prototype.forEach.call(document.querySelectorAll(\'.abU\'),function(c){c.checked=this.checked}.bind(this))"> <b>All</b></label>' +
+      d.users.map(function (u) { return '<label class="switch" style="color:#fff;margin:4px 0;display:flex"><input type="checkbox" class="abU" value="' + esc(u.email) + '" ' + (ticked.indexOf(u.email) !== -1 ? 'checked' : '') + '> ' + esc(u.name || u.email) + ' <span style="color:var(--muted);font-size:12px">' + esc(u.email) + ' | ' + esc(u.role) + ' | ' + esc(u.status) + '</span></label>'; }).join('') + '</div>' +
+      '<div id="abPrev"></div><div class="msg" id="abMsg"></div>';
+    var state = { previewed: false };
+    var bg = am('Bulk login tools', body, [{ label: 'Cancel' }, { label: 'Preview the changes', fn: function () { run(true); return true; } }, { label: 'Apply', cls: 'teal', fn: function (b, el) { if (!state.previewed) { $('abMsg').textContent = 'Preview the changes first.'; return true; } run(false, el); return true; } }], true);
+    var sync = function () { $('abRoleWrap').style.display = $('abAct').value === 'role' ? '' : 'none'; state.previewed = false; $('abPrev').innerHTML = ''; };
+    $('abAct').onchange = sync; $('abRole').onchange = sync;
+    Array.prototype.forEach.call(bg.querySelectorAll('.abU'), function (c) { c.addEventListener('change', sync); });
+    function picked() { return Array.prototype.filter.call(bg.querySelectorAll('.abU'), function (c) { return c.checked; }).map(function (c) { return c.value; }); }
+    function run(preview, el) {
+      $('abMsg').textContent = ''; busy(el, true, 'Applying...');
+      gs('ttUsersBulk', S.token, picked(), $('abAct').value, $('abRole').value, preview).then(function (r) {
+        if (preview) {
+          state.previewed = true;
+          $('abPrev').innerHTML = '<div style="margin-top:12px;font-weight:bold">' + esc(r.msg) + '</div><table class="adm-grid" style="margin-top:6px"><tr><th>Login</th><th>What changes</th></tr>' +
+            r.changes.map(function (c) { return '<tr><td>' + esc(c.name || c.email) + '<div class="sub">' + esc(c.email) + '</div></td><td' + (c.skip ? ' style="color:var(--muted)"' : '') + '>' + esc(c.change) + '</td></tr>'; }).join('') + '</table>';
+          return;
+        }
+        bg.remove(); toast(r.msg); U.sel = {};
+        return loadUsers().then(function () { showTemps(r.temps, 'New temporary passwords'); });
+      }).catch(function (e) { busy(el, false); $('abMsg').textContent = e.message; });
+    }
+    sync();
+  };
+
+  /* ----- Access grid ----- */
+  function gridHtml(d) {
+    var sel = function (role, a) {
+      var v = d.grid[role][a.key], opts = (a.canEdit ? [['edit', 'Can change']] : []).concat([['view', 'Can see'], ['hide', 'Hidden']]);
+      return '<select class="agSel" data-role="' + role + '" data-k="' + a.key + '">' + opts.map(function (o) { return '<option value="' + o[0] + '"' + (v === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>';
+    };
+    return '<div class="adm-pad"><div class="adm-note">Each login has a role. Admin can do everything, including this screen. This grid sets what Editor and Viewer can see or change. A change applies the next time each person opens a screen. Your role: <b>' + esc(acc().role) + '</b>.</div>' +
+      '<table class="adm-grid"><tr><th>Area</th><th>Admin</th><th>Editor</th><th>Viewer</th></tr>' +
+      d.areas.map(function (a) { return '<tr><td><b>' + esc(a.label) + '</b><div class="sub">' + esc(a.note) + '</div></td><td><span class="pill b">' + (a.canEdit ? 'Can change' : 'Can see') + '</span></td><td>' + sel('Editor', a) + '</td><td>' + sel('Viewer', a) + '</td></tr>'; }).join('') +
+      '<tr><td><b>Admin screen and logins</b><div class="sub">Always Admin only</div></td><td><span class="pill b">Can change</span></td><td><span class="pill n">Hidden</span></td><td><span class="pill n">Hidden</span></td></tr>' +
+      '<tr><td><b>Vendor Portal switch</b><div class="sub">An Admin login also signs in to the Vendor Portal with the same password</div></td><td><span class="pill b">Can see</span></td><td><span class="pill n">Hidden</span></td><td><span class="pill n">Hidden</span></td></tr></table>' +
+      '<div style="margin-top:12px"><button class="btn small teal" onclick="ttAdmGridSave()">Save access</button></div></div>';
+  }
+  window.ttAdmGridSave = function () {
+    var g = { Editor: {}, Viewer: {} };
+    Array.prototype.forEach.call(document.querySelectorAll('.agSel'), function (s) { g[s.getAttribute('data-role')][s.getAttribute('data-k')] = s.value; });
+    gs('ttAccessSave', S.token, g).then(function (r) { U.data.grid = r.grid; toast(r.msg); }).catch(function (e) { toast(e.message, true); });
+  };
+  window.ttAdmGridDefaults = function () {
+    if (!confirm('Put Access by role back to the defaults?')) return;
+    gs('ttAccessDefaults', S.token).then(function (r) { U.data.grid = r.grid; toast(r.msg); renderAdmin(); }).catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ----- Sign-in and security ----- */
+  var SEC = [
+    ['idleAdmin', 'Sign Admins out after this many idle minutes', 'Minutes without a click before an Admin is signed out. 0 = the longest allowed (6 hours).'],
+    ['idleEditor', 'Sign Editors out after this many idle minutes', 'Minutes without a click before an Editor is signed out. 0 = 6 hours.'],
+    ['idleViewer', 'Sign Viewers out after this many idle minutes', 'Minutes without a click before a Viewer is signed out. 0 = 6 hours.'],
+    ['maxTries', 'Wrong passwords before the login locks', 'Counted until the next good sign-in.'],
+    ['lockMinutes', 'Minutes a locked login stays locked', 'An Admin can unlock it sooner from Sign-in help.']
+  ];
+  function secHtml(d) {
+    return SEC.filter(function (x) { return d.securityLimits && d.securityLimits[x[0]]; }).map(function (x) { var lim = d.securityLimits[x[0]]; return '<div class="adm-srow"><div class="t"><b>' + esc(x[1]) + '</b><span>' + esc(x[2]) + ' (' + lim[0] + ' to ' + lim[1] + ')</span></div><div class="c"><input type="number" class="secIn" data-k="' + x[0] + '" min="' + lim[0] + '" max="' + lim[1] + '" value="' + d.security[x[0]] + '"></div></div>'; }).join('') +
+      '<div class="adm-srow"><div class="t"><span>Passwords are stored salted and hashed on the TechTrack Access tab, never as plain text. Changing a role, turning a login off or resetting a password signs that person out right away.</span></div><div class="c"><button class="btn small teal" onclick="ttAdmSecSave()">Save settings</button></div></div>';
+  }
+  window.ttAdmSecSave = function () {
+    var s = {}; Array.prototype.forEach.call(document.querySelectorAll('.secIn'), function (i) { s[i.getAttribute('data-k')] = i.value; });
+    gs('ttSecuritySave', S.token, s).then(function (r) { U.data.security = r.security; toast(r.msg); }).catch(function (e) { toast(e.message, true); });
+  };
+  window.ttAdmSecDefaults = function () {
+    if (!confirm('Put the sign-in settings back to the defaults?')) return;
+    gs('ttSecurityDefaults', S.token).then(function (r) { U.data.security = r.security; toast(r.msg); renderAdmin(); }).catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ----- Sign-in help ----- */
+  function helpHtml() {
+    return '<div class="adm-pad"><div class="adm-note">Someone locked out or forgot their password? Look them up by their login email.</div>' +
+      '<div style="display:flex;gap:10px"><input id="lkEmail" placeholder="name@example.com" value="' + esc(U.look ? U.look.email : '') + '" onkeydown="if(event.key===\'Enter\')ttAdmLookup(this.value)"><button class="btn teal" onclick="ttAdmLookup($(\'lkEmail\').value)">Find</button></div><div id="lkOut" style="margin-top:12px">' + lookHtml() + '</div></div>';
+  }
+  function lookHtml() {
+    var L = U.look; if (!L) return '';
+    if (L.err) return '<div class="conf">' + esc(L.err) + '</div>';
+    if (!L.found) return '<div class="adm-tile"><div class="l">' + esc(L.email) + '</div><div class="n" style="font-size:14px">' + esc(L.note) + '</div><div style="margin-top:10px"><button class="btn small teal" onclick="ttAdmUserNew(\'' + esc(L.email) + '\')">+ Add login for this email</button></div></div>';
+    var u = L.user, e = esc(u.email);
+    return '<div class="adm-tile"><div class="l">' + esc(u.name) + ' | ' + e + '</div><div class="v">' + rolePill(u.role) + ' ' + pillFor(u.status) + '</div>' +
+      '<div class="n" style="font-size:13px">Last sign-in: ' + esc(u.lastSignIn || 'Never') + ' | Wrong tries: ' + u.tries + (u.locked ? ' | Locked until ' + esc(u.lockedUntil) : '') + ' | Created ' + esc(u.created) + '</div>' +
+      '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">' +
+      (u.locked || u.tries ? '<button class="btn small teal" onclick="ttAdmAct(\'' + e + '\',\'unlock\')">Unlock</button>' : '') +
+      '<button class="btn small" onclick="ttAdmAct(\'' + e + '\',\'reset\')">Reset password</button>' +
+      '<button class="btn small" onclick="ttAdmAct(\'' + e + '\',\'' + (u.active ? 'off' : 'on') + '\')">' + (u.active ? 'Turn off' : 'Turn on') + '</button>' +
+      '<button class="btn small" onclick="ttAdmAct(\'' + e + '\',\'signout\')">Sign out everywhere</button>' +
+      '<button class="btn small" onclick="ttAdmUser(\'' + e + '\')">Edit</button></div></div>';
+  }
+  window.ttAdmLookup = function (email) {
+    email = String(email || '').trim(); if (!email) return toast('Type the login email', true);
+    gs('ttUserLookup', S.token, email).then(function (r) { U.look = r.found ? { email: r.user.email, found: true, user: r.user } : r; var o = $('lkOut'); if (o) o.innerHTML = lookHtml(); })
+      .catch(function (e) { U.look = { email: email, err: e.message }; var o = $('lkOut'); if (o) o.innerHTML = lookHtml(); });
+  };
+  window.ttAdmUserNew = function (email) { ttAdmUser(''); setTimeout(function () { if ($('auEmail')) $('auEmail').value = email; if ($('auName')) $('auName').focus(); }, 60); };
+
+  /* ----- Settings that were on the old Admin screen ----- */
+  function srow(title, note, ctrl) { return '<div class="adm-srow"><div class="t"><b>' + esc(title) + '</b>' + (note ? '<span>' + esc(note) + '</span>' : '') + '</div><div class="c">' + ctrl + '</div></div>'; }
+  function chk(on, onchange, id) { return '<input type="checkbox"' + (id ? ' id="' + id + '"' : '') + (on ? ' checked' : '') + (onchange ? ' onchange="' + onchange + '"' : '') + '> <span style="min-width:24px">' + (on ? 'On' : 'Off') + '</span>'; }
+  function modesHtml(a) {
+    return srow('Test Mode', 'Same as Settings > Test Mode in the Sheets menu.', chk(a.testMode, "ttAdminSet('testMode',this.checked)")) +
+      srow('Send Only To Me', 'Every automated email goes to Chris only.', chk(a.sendOnlyToMe, "ttAdminSet('sendOnlyToMe',this.checked)")) +
+      srow('Run sheet automations on Save', 'Archive on Complete, End Date, moves, Teams and notifications run once, in the background, after Save.', chk(a.automations, "ttAdminSet('automations',this.checked)"));
+  }
+  function notifHtml(a) {
+    var n = a.notif || {};
+    return srow('Instant notifications', 'Email right away when something changes.', chk(n.instant, '', 'nInst')) +
+      srow('Daily digest', 'One summary email a day.', chk(n.digest, '', 'nDig')) +
+      srow('Recipient', 'Automated email goes to Chris only.', '<input type="text" id="nTo" value="' + esc(n.recipient || '') + '">');
+  }
+  window.ttAdmNotif = function () { ttAdminSet('notif', { instant: $('nInst').checked, digest: $('nDig').checked, recipient: $('nTo').value }); };
+  function teamsHtml(a) {
+    var t = a.teams || { events: {} };
+    return srow('Webhook URL', t.hasUrl ? 'Saved (' + t.urlTail + '). Paste a new one to change it.' : 'Paste the Teams webhook URL.', '<input type="text" id="tUrl" placeholder="https://...">') +
+      Object.keys(t.events || {}).map(function (k) { return srow(k.replace(/([A-Z])/g, ' $1').replace(/^./, function (c) { return c.toUpperCase(); }), '', '<input type="checkbox" class="tEv" data-k="' + esc(k) + '"' + (t.events[k] ? ' checked' : '') + '>'); }).join('') +
+      '<div class="adm-srow"><div class="t"></div><div class="c"><button class="btn small teal" onclick="ttAdminTeams()">Save Teams</button></div></div>';
+  }
+  function listsHtml(a) {
+    if (!(a.lists || []).length) return '<div class="adm-pad"><div class="empty">No validation lists found on _ValidationLists.</div></div>';
+    return '<div class="adm-pad"><div class="frow"><label>List</label><select id="vlName" onchange="ttAdminList()" style="max-width:320px">' + a.lists.map(function (l, i) { return '<option value="' + i + '">' + esc(l.name) + ' (' + l.values.length + ')</option>'; }).join('') + '</select></div>' +
+      '<textarea id="vlVals" rows="10" style="width:100%"></textarea><div class="frow"><button class="btn small teal" onclick="ttAdminListSave()">Save list</button><span style="color:var(--muted);font-size:13px">One value per line. Then run Apply Data Validation from the Sheets menu.</span></div></div>';
+  }
+  function toolsHtml() {
+    var t = function (title, note, btn) { return '<div class="adm-tool"><b>' + esc(title) + '</b><span>' + esc(note) + '</span>' + btn + '</div>'; };
+    return '<div class="adm-tools">' +
+      t('Refresh app memory', 'Use if a screen looks out of date. Every screen reads fresh data from the sheet on the next click.', '<button class="btn teal" onclick="ttAdminClear()">Refresh app memory</button>') +
+      t('Vendor Portal Admin', 'Vendor invites, resets and who can sign in to the portal. TechTrack Admins get in with their TechTrack password.', '<button class="btn" onclick="openPortal(event)">Open Vendor Portal</button>') +
+      t('Guided tour', 'Walk through the app screens again.', '<button class="btn" onclick="ttTour(true)">Replay the tour</button>') +
+      t('Help and Training', 'How every screen works, plus the 15 training modules.', '<button class="btn" onclick="go(\'help\')">Open Help</button>') +
+      '</div>';
+  }
+  function trigHtml(a) {
+    return '<div class="adm-pad"><div class="adm-note">These run on their own in the TechTrack Google account. Read only: TechTrack is out of trigger slots, so the app never adds one.</div><table class="adm-grid"><tr><th>Job</th><th>Type</th><th>Source</th></tr>' +
+      (a.triggers || []).map(function (x) { return '<tr><td>' + esc(x.handler) + '</td><td>' + esc(x.type) + '</td><td>' + esc(x.source) + '</td></tr>'; }).join('') + '</table></div>';
+  }
+
+  // The old Admin buttons call these. Point them at this screen.
+  window.ttAdminSet = function (what, value) {
+    gs('ttAdminSet', S.token, what, value).then(function (r) { toast(r.msg || 'Saved'); return gs('ttAdminGet', S.token).then(function (a) { S.plus.admin = a; if (S.view === 'admin') renderAdmin(); }); }).catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ===================== MY PASSWORD ===================== */
+  window.ttMyPassword = function () {
+    gs('ttMyAccount', S.token).then(function (me) {
+      if (me.src !== 'techtrack') return am('My password', 'You sign in with your Vendor Portal Admin password. Change it in the Vendor Portal (My account).', [{ label: 'Open Vendor Portal', fn: function () { openPortal(); } }, { label: 'Close', cls: 'primary' }]);
+      am('My password', '<div style="color:var(--muted)">' + esc(me.name) + ' | ' + esc(me.email) + ' | ' + esc(me.role) + '</div>' +
+        '<label>Current password</label><input id="mpCur" type="password" autocomplete="current-password">' +
+        '<label>New password</label><input id="mpNew" type="password" autocomplete="new-password">' +
+        '<label>Type it again</label><input id="mpNew2" type="password" autocomplete="new-password">' +
+        '<div class="msg" id="mpMsg"></div>',
+        [{ label: 'Cancel' }, { label: 'Change password', cls: 'teal', fn: function (bg, el) {
+          if ($('mpNew').value !== $('mpNew2').value) { $('mpMsg').textContent = 'The two new passwords do not match.'; return true; }
+          busy(el, true, 'Saving...');
+          gs('ttChangeMyPassword', S.token, $('mpCur').value, $('mpNew').value).then(function (r) { bg.remove(); toast(r.msg); }).catch(function (e) { busy(el, false); $('mpMsg').textContent = e.message; });
+          return true;
+        } }]);
+    }).catch(function (e) { toast(e.message, true); });
+  };
+
+  /* ===================== BELL (Nov 1 2026) =====================
+     Opens a list of everything waiting on you: projects past their date,
+     Coupa approvals, and for Admins vendor date requests, change orders,
+     new quotes, device handoffs and locked logins. Each one is clickable. */
+  var B = S.bell = { srv: null, at: 0, open: false };
+  function bellLocal() {
+    if (!S.boot || !S.tables || typeof myDayModel !== 'function') return { overdue: [], appr: [] };
+    try { var m = myDayModel(); return { overdue: m.overdue, appr: m.appr }; } catch (e) { return { overdue: [], appr: [] }; }
+  }
+  function bellCount() { var l = bellLocal(); return l.overdue.length + l.appr.length + ((B.srv && B.srv.items) || []).length; }
+  window.ttBellPaint = function () {
+    var n = bellCount(), el = $('bellN'); if (!el) return;
+    el.textContent = n > 99 ? '99+' : n; el.classList.toggle('hidden', !n);
+    var b = document.querySelector('header.top .bell'); if (b) b.title = n ? n + ' things waiting on you' : 'Nothing waiting on you';
+    if (B.open) paintBellPanel();
+  };
+  function bellFetch(force) {
+    if (!S.token || (!force && Date.now() - B.at < 120000)) return Promise.resolve();
+    B.at = Date.now();
+    return gs('ttBell', S.token).then(function (r) { B.srv = r; ttBellPaint(); }).catch(function () { B.srv = B.srv || { items: [] }; });
+  }
+  function bItem(title, sub, when, click) {
+    return '<div class="bi" onclick="' + click + '">' + (when ? '<span class="w">' + esc(when) + '</span>' : '') + '<div class="t1">' + esc(title) + '</div><div class="t2">' + esc(sub) + '</div></div>';
+  }
+  function paintBellPanel() {
+    var p = $('bellPanel'); if (!p) return;
+    var l = bellLocal(), srv = (B.srv && B.srv.items) || [], n = l.overdue.length + l.appr.length + srv.length;
+    var proj = function (x) { return bItem(x.project || '(no project name)', (x.hotel || '') + ' (' + x.code + ')' + (x.vendor ? ' | ' + x.vendor : '') + (x.cost ? ' | ' + money(x.cost) : ''), x.date ? fmtDate(x.date) : '', "ttBellClose();openProject('" + esc(x.sheet).replace(/'/g, "\\'") + "'," + x.r + ")"); };
+    var groups = {};
+    srv.forEach(function (x, i) { (groups[x.kind] || (groups[x.kind] = [])).push(bItem(x.title, x.sub, x.when, 'ttBellGo(' + i + ')')); });
+    var html = '<div class="bh"><b>Waiting on you</b><span class="count">' + n + '</span><span style="margin-left:auto"></span><button class="btn small" onclick="ttBellRefresh()">Refresh</button><button class="btn small" onclick="ttBellClose()">Close</button></div>';
+    if (!n) html += '<div class="empty">Nothing waiting on you right now.</div>';
+    Object.keys(groups).forEach(function (k) { html += '<div class="bs">' + esc(k) + ' (' + groups[k].length + ')</div>' + groups[k].slice(0, 25).join(''); });
+    if (l.overdue.length) html += '<div class="bs">Past their date (' + l.overdue.length + ')</div>' + l.overdue.slice(0, 25).map(proj).join('');
+    if (l.appr.length) html += '<div class="bs">Waiting in Coupa approvals (' + l.appr.length + ')</div>' + l.appr.slice(0, 25).map(proj).join('');
+    if (l.overdue.length > 25 || l.appr.length > 25) html += '<div class="bi" onclick="ttBellClose();go(\'myday\')"><div class="t1">See everything on My Day</div></div>';
+    html += '<div style="padding:8px 14px;color:var(--dim);font-size:12px">' + (B.srv && B.srv.asOf ? 'Vendor items as of ' + esc(B.srv.asOf) : '') + '</div>';
+    p.innerHTML = html;
+  }
+  window.ttBellToggle = function (e) {
+    if (e) e.stopPropagation();
+    if (B.open) return ttBellClose();
+    B.open = true;
+    var p = document.createElement('div'); p.id = 'bellPanel'; p.onclick = function (ev) { ev.stopPropagation(); };
+    document.body.appendChild(p); paintBellPanel();
+    bellFetch(false);
+  };
+  window.ttBellClose = function () { B.open = false; var p = $('bellPanel'); if (p) p.remove(); };
+  window.ttBellRefresh = function () { B.at = 0; bellFetch(true).then(paintBellPanel); };
+  window.ttBellGo = function (i) {
+    var x = ((B.srv && B.srv.items) || [])[i]; if (!x) return;
+    ttBellClose();
+    if (x.go === 'admin') { go('admin'); if (x.email) setTimeout(function () { ttAdmLookup(x.email); }, 600); return; }
+    var w = window.open('', '_blank');
+    gs('ttOpenPortal', S.token, x.open && x.open !== 'portal' ? x.open : '').then(function (r) { if (w) w.location.href = r.url; else window.open(r.url, '_blank'); })
+      .catch(function (e) { if (w) w.close(); toast(e.message, true); });
+  };
+  document.addEventListener('click', function () { if (B.open) ttBellClose(); });
+  (function hookBell() {
+    var b = document.querySelector('header.top .bell'); if (!b) return;
+    b.setAttribute('onclick', 'ttBellToggle(event)');
+  })();
+  setInterval(function () { if (S.token && !document.hidden) bellFetch(false); }, 300000);
+
+  /* ===================== EXPORTS (Blue Box) ===================== */
+  window.exportModel = function () {
+    if (S.view !== 'admin') return prev.exportModel();
+    var d = U.data; if (!d || !d.users) return null;
+    var list = filtered(d).slice().sort(function (x, y) { return String(x.name || x.email).localeCompare(String(y.name || y.email)); });
+    var f = U.f, filters = []; if (f.role) filters.push('Role = ' + f.role); if (f.status) filters.push('Status = ' + f.status); if (f.q) filters.push('Search = ' + f.q);
+    var s = d.stats;
+    return {
+      title: 'TechTrack Logins', subtitle: 'TechTrack Admin | ' + (filters.length ? 'Filtered: ' + filters.join(', ') : 'All logins'), filters: filters.join(', '), sortIndex: 0,
+      summary: [s.active + ' active logins of ' + s.total + ' (' + s.byRole.map(function (x) { return x.n + ' ' + x.role; }).join(', ') + ').',
+        s.week + ' signed in during the last 7 days; ' + s.never + ' active logins have never signed in.',
+        s.locked + ' locked and ' + s.mustChange + ' still on a temporary password.',
+        'Admin logins also sign in to the Vendor Portal with the same password. Emails with no row here use their Vendor Portal Admin password.'],
+      columns: ['Name', 'Email', 'Role', 'Status', 'Last Sign-In', 'Created', 'Created By', 'Notes'],
+      money: [false, false, false, false, false, false, false, false],
+      rows: list.map(function (u) { return [u.name, u.email, u.role, u.status, u.lastSignIn || 'Never', u.created, u.createdBy, u.notes]; }),
+      asOf: d.asOf
+    };
+  };
+})();
+</script>
